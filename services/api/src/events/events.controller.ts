@@ -17,22 +17,27 @@ export class EventsController {
     return this.eventsService.create(req.user.id, dto);
   }
 
-  @Get(':id')
-  @ApiOperation({ summary: 'イベント詳細取得（AI解析含む）' })
-  findById(@Param('id') id: string) {
-    return this.eventsService.findById(id);
-  }
-
+  // Must be declared before :id to avoid route clash
   @Get('elderly/:elderlyId')
   @ApiOperation({ summary: 'イベント一覧取得（家族が閲覧）' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
   findByElderly(
     @Param('elderlyId') elderlyId: string,
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.eventsService.findByElderly(elderlyId, page, limit);
+    return this.eventsService.findByElderly(
+      elderlyId,
+      page ? Number(page) : undefined,
+      limit ? Number(limit) : undefined,
+    );
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'イベント詳細取得（AI解析含む）' })
+  findById(@Param('id') id: string) {
+    return this.eventsService.findById(id);
   }
 
   @Patch(':id/resolve')

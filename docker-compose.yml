@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -39,14 +37,13 @@ services:
       DATABASE_URL: postgresql://mamori:mamori_dev@postgres:5432/mamori_talk
       REDIS_URL: redis://redis:6379
       JWT_SECRET: dev-jwt-secret-change-in-production
+      AI_SERVICE_URL: http://ai:8000
       NODE_ENV: development
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-    volumes:
-      - ./services/api/src:/app/src
 
   ai:
     build:
@@ -56,8 +53,6 @@ services:
       - '8000:8000'
     environment:
       ENVIRONMENT: development
-    volumes:
-      - ./services/ai/app:/app/app
 
 volumes:
   postgres_data:

@@ -7,7 +7,7 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { DeviceTokenDto } from './dto/device-token.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
-@ApiTags('auth')
+@ApiTags('認証')
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}

@@ -26,21 +26,24 @@ export class CreateEventDto {
   @IsEnum(EVENT_TYPES)
   type: EventType;
 
-  @ApiProperty({ enum: SEVERITY_LEVELS })
+  @ApiProperty({
+    enum: SEVERITY_LEVELS,
+    description: '重大度（critical / high / medium / low）',
+  })
   @IsEnum(SEVERITY_LEVELS)
   severity: AlertSeverity;
 
-  @ApiProperty({ required: false })
+  @ApiProperty({ required: false, description: 'イベント付随データ（JSON）' })
   @IsOptional()
   @IsObject()
   payload?: Record<string, unknown>;
 
-  @ApiProperty({ required: false })
+  @ApiProperty({ required: false, description: '緯度' })
   @IsOptional()
   @IsNumber()
   latitude?: number;
 
-  @ApiProperty({ required: false })
+  @ApiProperty({ required: false, description: '経度' })
   @IsOptional()
   @IsNumber()
   longitude?: number;

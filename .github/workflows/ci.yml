@@ -7,7 +7,7 @@ on:
     branches: [main, develop]
 
 jobs:
-  # ─── NestJS API Unit Tests ───
+  # ─── NestJS API ユニットテスト ───
   api-unit-test:
     runs-on: ubuntu-latest
     defaults:
@@ -25,7 +25,7 @@ jobs:
       - run: npx prisma generate
       - run: npm test
 
-  # ─── NestJS API E2E Tests ───
+  # ─── NestJS API E2Eテスト ───
   api-e2e-test:
     runs-on: ubuntu-latest
     defaults:
@@ -72,8 +72,8 @@ jobs:
         env:
           DATABASE_URL: postgresql://mamori:test_password@localhost:5432/mamori_talk_test
 
-      # Start AI service for integration tests
-      - name: Start AI service
+      # AI サービス起動（結合テスト用）
+      - name: AI サービス起動
         run: |
           cd ${{ github.workspace }}/services/ai
           pip install -q fastapi uvicorn pydantic httpx
@@ -88,7 +88,7 @@ jobs:
           JWT_SECRET: test-jwt-secret
           AI_SERVICE_URL: http://localhost:8000
 
-  # ─── NestJS API Build Check ───
+  # ─── NestJS API ビルドチェック ───
   api-build:
     runs-on: ubuntu-latest
     defaults:
@@ -106,7 +106,7 @@ jobs:
       - run: npx prisma generate
       - run: npm run build
 
-  # ─── FastAPI AI Tests ───
+  # ─── FastAPI AI テスト ───
   ai-test:
     runs-on: ubuntu-latest
     defaults:
@@ -126,7 +126,24 @@ jobs:
       - run: pip install pytest httpx
       - run: python -m pytest tests/ -v
 
-  # ─── Mobile TypeScript Check ───
+  # ─── 共有パッケージ 型チェック ───
+  shared-typecheck:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/shared
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - run: npm install
+      - run: npx tsc --noEmit
+
+  # ─── モバイル TypeScript チェック ───
   mobile-typecheck:
     runs-on: ubuntu-latest
     defaults:
@@ -143,7 +160,7 @@ jobs:
       - run: npm install
       - run: npx tsc --noEmit
 
-  # ─── Docker Build Check ───
+  # ─── Docker ビルドチェック ───
   docker-build:
     runs-on: ubuntu-latest
     strategy:
@@ -152,5 +169,5 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build ${{ matrix.service }} image
+      - name: ${{ matrix.service }} イメージビルド
         run: docker build -t mamoritalk-${{ matrix.service }}:test ./services/${{ matrix.service }}

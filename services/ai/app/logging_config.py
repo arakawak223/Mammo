@@ -1,17 +1,18 @@
 """構造化ログ設定"""
 
 import logging
-import os
 import sys
 
 from pythonjsonlogger.json import JsonFormatter
 
+from app.config import get_settings
+
 
 def setup_logging() -> None:
     """アプリケーションのログ設定を初期化する。"""
-    environment = os.getenv("ENVIRONMENT", "development")
-    is_production = environment == "production"
-    log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+    settings = get_settings()
+    is_production = settings.is_production
+    log_level = settings.log_level
 
     root_logger = logging.getLogger()
     root_logger.setLevel(log_level)

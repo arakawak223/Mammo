@@ -1,6 +1,6 @@
 import { Controller, Post, Body, UseGuards, Req } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiProperty } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiProperty, ApiResponse } from '@nestjs/swagger';
 import { IsString, IsOptional } from 'class-validator';
 import { AiService } from './ai.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -42,6 +42,8 @@ export class AiController {
     summary: '闇バイトチェッカー',
     description: 'メッセージや求人投稿が闇バイト（犯罪的アルバイト）の勧誘かどうかを判定します。相談先情報も併せて返却します。',
   })
+  @ApiResponse({ status: 201, description: '判定結果（リスクレベル・スコア・理由・相談先情報）' })
+  @ApiResponse({ status: 429, description: 'レート制限超過（10回/分）' })
   async checkDarkJob(@Body() dto: DarkJobCheckDto) {
     const result = await this.aiService.checkDarkJob(dto.text, dto.source);
     return {
@@ -56,6 +58,8 @@ export class AiController {
     summary: 'AI音声解析（transcript受信）',
     description: '音声認識テキストを受信し、AI詐欺解析を実行。結果をイベントとして保存し、家族に通知します。',
   })
+  @ApiResponse({ status: 201, description: '音声解析結果（リスクスコア・詐欺種別・要約）' })
+  @ApiResponse({ status: 429, description: 'レート制限超過（5回/分）' })
   async voiceAnalyze(@Req() req: any, @Body() dto: VoiceAnalyzeDto) {
     const userId = req.user.id;
     return this.aiService.voiceAnalyze(userId, dto.transcript);

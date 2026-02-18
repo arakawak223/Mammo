@@ -2,7 +2,6 @@
 
 import json
 import logging
-import os
 import re
 import time
 import uuid
@@ -15,21 +14,39 @@ from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import HTMLResponse
 
+from app.config import get_settings
 from app.logging_config import setup_logging
 from app.routers import conversation, dark_job, health, metadata, summary
+
+# 設定読み込み（起動時にバリデーション実行）
+settings = get_settings()
 
 # ログ初期化
 setup_logging()
 logger = logging.getLogger(__name__)
 
-ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
-IS_PRODUCTION = ENVIRONMENT == "production"
+IS_PRODUCTION = settings.is_production
 
 
 # グレースフルシャットダウン
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("AI service starting up")
+    logger.info(
+        "AI service starting up",
+        extra={
+            "environment": settings.environment,
+            "ai_model_name": settings.ai_model_name,
+            "log_level": settings.log_level,
+            "port": settings.port,
+        },
+    )
+    logger.info(
+        "設定読み込み完了: environment=%s, ai_model=%s, log_level=%s, port=%d",
+        settings.environment,
+        settings.ai_model_name,
+        settings.log_level,
+        settings.port,
+    )
     yield
     logger.info("AI service shutting down gracefully")
 
@@ -147,8 +164,7 @@ app.add_middleware(CorrelationIdMiddleware)
 
 # WP-3: CORS環境別ホワイトリスト
 if IS_PRODUCTION:
-    cors_origins_str = os.getenv("CORS_ORIGINS", "")
-    cors_origins = [o.strip() for o in cors_origins_str.split(",") if o.strip()]
+    cors_origins = settings.cors_origins_list
 else:
     cors_origins = ["*"]
 

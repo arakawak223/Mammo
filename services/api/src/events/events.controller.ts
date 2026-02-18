@@ -1,5 +1,5 @@
 import { Controller, Post, Get, Patch, Body, Param, Query, UseGuards, Req } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery, ApiParam, ApiResponse } from '@nestjs/swagger';
 import { EventsService } from './events.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -16,6 +16,7 @@ export class EventsController {
     summary: 'イベント送信（高齢者端末から）',
     description: '高齢者端末から詐欺検知イベントを送信します。AI解析・プッシュ通知・自動転送が自動実行されます。',
   })
+  @ApiResponse({ status: 201, description: 'イベント作成成功。AI解析・通知が非同期実行' })
   create(@Req() req: any, @Body() dto: CreateEventDto) {
     return this.eventsService.create(req.user.id, dto);
   }
@@ -29,6 +30,7 @@ export class EventsController {
   @ApiParam({ name: 'elderlyId', description: '高齢者ユーザーID' })
   @ApiQuery({ name: 'page', required: false, description: 'ページ番号（1始まり）' })
   @ApiQuery({ name: 'limit', required: false, description: '1ページあたりの件数' })
+  @ApiResponse({ status: 200, description: 'ページネーション付きイベント一覧' })
   findByElderly(
     @Param('elderlyId') elderlyId: string,
     @Query('page') page?: string,
@@ -47,6 +49,8 @@ export class EventsController {
     description: '特定イベントの詳細情報をAI解析結果付きで取得します。',
   })
   @ApiParam({ name: 'id', description: 'イベントID' })
+  @ApiResponse({ status: 200, description: 'イベント詳細（AI解析結果含む）' })
+  @ApiResponse({ status: 404, description: 'イベントが見つからない' })
   findById(@Param('id') id: string) {
     return this.eventsService.findById(id);
   }
@@ -57,6 +61,8 @@ export class EventsController {
     description: 'イベントを対応済みとしてマークします。WebSocketで家族に通知されます。',
   })
   @ApiParam({ name: 'id', description: 'イベントID' })
+  @ApiResponse({ status: 200, description: '対応済みマーク完了' })
+  @ApiResponse({ status: 404, description: 'イベントが見つからない' })
   resolve(@Req() req: any, @Param('id') id: string) {
     return this.eventsService.resolve(id, req.user.id);
   }

@@ -1,5 +1,5 @@
 import { Controller, Post, Get, Put, Patch, Body, Param, UseGuards, Req } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { SosService } from './sos.service';
 import { StartSosDto } from './dto/start-sos.dto';
 import { UpdateLocationDto } from './dto/update-location.dto';
@@ -15,30 +15,43 @@ export class SosController {
 
   @Post('start')
   @ApiOperation({ summary: 'SOS開始' })
+  @ApiResponse({ status: 201, description: 'SOSセッション開始。家族にプッシュ通知送信' })
   start(@Req() req: any, @Body() dto: StartSosDto) {
     return this.sosService.start(req.user.id, dto);
   }
 
   @Post(':id/location')
   @ApiOperation({ summary: '位置情報更新' })
+  @ApiParam({ name: 'id', description: 'SOSセッションID' })
+  @ApiResponse({ status: 201, description: '位置情報更新完了' })
+  @ApiResponse({ status: 404, description: 'セッションが見つからないまたは非アクティブ' })
   updateLocation(@Param('id') id: string, @Body() dto: UpdateLocationDto) {
     return this.sosService.updateLocation(id, dto);
   }
 
   @Patch(':id/mode')
   @ApiOperation({ summary: 'SOSモード切替（家族のみ）' })
+  @ApiParam({ name: 'id', description: 'SOSセッションID' })
+  @ApiResponse({ status: 200, description: 'モード切替完了' })
+  @ApiResponse({ status: 403, description: '権限なし（家族ユーザーのみ）' })
   changeMode(@Req() req: any, @Param('id') id: string, @Body() dto: ChangeModeDto) {
     return this.sosService.changeMode(id, dto.mode, req.user.id);
   }
 
   @Post(':id/resolve')
   @ApiOperation({ summary: 'SOS解除（家族のみ）' })
+  @ApiParam({ name: 'id', description: 'SOSセッションID' })
+  @ApiResponse({ status: 201, description: 'SOS解除完了' })
+  @ApiResponse({ status: 403, description: '権限なし（家族ユーザーのみ）' })
   resolve(@Req() req: any, @Param('id') id: string) {
     return this.sosService.resolve(id, req.user.id);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'SOSセッション取得' })
+  @ApiParam({ name: 'id', description: 'SOSセッションID' })
+  @ApiResponse({ status: 200, description: 'SOSセッション詳細' })
+  @ApiResponse({ status: 404, description: 'セッションが見つからない' })
   getSession(@Param('id') id: string) {
     return this.sosService.getSession(id);
   }

@@ -21,12 +21,13 @@ import { ThrottlerBehindProxyGuard } from './common/guards/throttler-behind-prox
 import { RedisThrottlerStorage } from './common/throttler/redis-throttler.storage';
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 import { MetricsMiddleware } from './metrics/metrics.middleware';
+import { validate } from './common/config/env.validation';
 
 const isProduction = process.env.NODE_ENV === 'production';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, validate }),
     LoggerModule.forRoot({
       pinoHttp: {
         transport: isProduction

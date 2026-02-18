@@ -1,5 +1,5 @@
 import { Controller, Get, Header, Query, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { StatisticsService } from './statistics.service';
 import { GetStatisticsDto } from './dto/get-statistics.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -17,6 +17,7 @@ export class StatisticsController {
     summary: '都道府県別詐欺統計取得',
     description: '都道府県を指定して詐欺統計を取得します。未指定の場合は全国集計を返します。',
   })
+  @ApiResponse({ status: 200, description: '都道府県別統計データ（BigIntはnumber変換済み）' })
   getStatistics(@Query() query: GetStatisticsDto) {
     if (query.prefecture) {
       return this.statisticsService.getByPrefecture(query.prefecture, query.yearMonth);
@@ -31,6 +32,7 @@ export class StatisticsController {
     description: '全国の詐欺統計を集計して返します。',
   })
   @ApiQuery({ name: 'yearMonth', required: false, description: '年月（YYYY-MM）' })
+  @ApiResponse({ status: 200, description: '全国集計データ' })
   getNational(@Query('yearMonth') yearMonth?: string) {
     return this.statisticsService.getNational(yearMonth);
   }
@@ -43,6 +45,7 @@ export class StatisticsController {
   })
   @ApiQuery({ name: 'limit', required: false, description: '取得件数（デフォルト: 10）' })
   @ApiQuery({ name: 'yearMonth', required: false, description: '年月（YYYY-MM）' })
+  @ApiResponse({ status: 200, description: 'ワースト都道府県ランキング' })
   getTopPrefectures(
     @Query('limit') limit?: string,
     @Query('yearMonth') yearMonth?: string,

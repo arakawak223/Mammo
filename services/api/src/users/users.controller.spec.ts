@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
+import { plainToInstance } from 'class-transformer';
+import { UserResponseDto } from '../common/dto/user-response.dto';
 
 const mockUser = {
   id: 'user-1',
@@ -34,11 +36,12 @@ describe('UsersController', () => {
   });
 
   describe('GET /users/me', () => {
-    it('should return user profile without passwordHash', async () => {
+    it('should return user profile without passwordHash after serialization', async () => {
       mockUsersService.findById.mockResolvedValue(mockUser);
       const req = { user: { id: 'user-1' } };
 
-      const result = await controller.getProfile(req);
+      const raw = await controller.getProfile(req);
+      const result = plainToInstance(UserResponseDto, raw, { excludeExtraneousValues: false });
 
       expect(result.id).toBe('user-1');
       expect(result.name).toBe('テスト太郎');
@@ -54,12 +57,13 @@ describe('UsersController', () => {
   });
 
   describe('PUT /users/me', () => {
-    it('should update and return profile without passwordHash', async () => {
+    it('should update and return profile without passwordHash after serialization', async () => {
       const updated = { ...mockUser, name: '更新太郎' };
       mockUsersService.updateProfile.mockResolvedValue(updated);
       const req = { user: { id: 'user-1' } };
 
-      const result = await controller.updateProfile(req, { name: '更新太郎' });
+      const raw = await controller.updateProfile(req, { name: '更新太郎' });
+      const result = plainToInstance(UserResponseDto, raw, { excludeExtraneousValues: false });
 
       expect(result.name).toBe('更新太郎');
       expect(result).not.toHaveProperty('passwordHash');

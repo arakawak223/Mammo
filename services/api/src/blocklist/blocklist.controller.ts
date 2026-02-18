@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Delete, Body, Param, UseGuards, Req } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiResponse } from '@nestjs/swagger';
 import { BlocklistService } from './blocklist.service';
 import { AddBlockedNumberDto } from './dto/add-blocked-number.dto';
 import { SyncBlocklistDto } from './dto/sync-blocklist.dto';
@@ -18,6 +18,7 @@ export class BlocklistController {
     description: '指定した高齢者のブロック番号一覧を取得します。',
   })
   @ApiParam({ name: 'elderlyId', description: '高齢者ユーザーID' })
+  @ApiResponse({ status: 200, description: 'ブロック番号一覧' })
   getList(@Req() req: any, @Param('elderlyId') elderlyId: string) {
     return this.blocklistService.getList(elderlyId, req.user.id);
   }
@@ -28,6 +29,8 @@ export class BlocklistController {
     description: 'ブロックリストに電話番号を追加します。',
   })
   @ApiParam({ name: 'elderlyId', description: '高齢者ユーザーID' })
+  @ApiResponse({ status: 201, description: '番号追加完了' })
+  @ApiResponse({ status: 409, description: '既にブロック済み' })
   addNumber(
     @Req() req: any,
     @Param('elderlyId') elderlyId: string,
@@ -43,6 +46,8 @@ export class BlocklistController {
   })
   @ApiParam({ name: 'elderlyId', description: '高齢者ユーザーID' })
   @ApiParam({ name: 'numberId', description: 'ブロック番号ID' })
+  @ApiResponse({ status: 200, description: 'ブロック解除完了' })
+  @ApiResponse({ status: 404, description: '番号が見つからない' })
   removeNumber(
     @Req() req: any,
     @Param('elderlyId') elderlyId: string,
@@ -57,6 +62,7 @@ export class BlocklistController {
     description: '端末側への同期が完了したブロック番号をマークします。',
   })
   @ApiParam({ name: 'elderlyId', description: '高齢者ユーザーID' })
+  @ApiResponse({ status: 201, description: '同期マーク完了' })
   syncBlocklist(
     @Param('elderlyId') elderlyId: string,
     @Body() dto: SyncBlocklistDto,

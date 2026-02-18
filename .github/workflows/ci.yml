@@ -171,3 +171,70 @@ jobs:
 
       - name: ${{ matrix.service }} イメージビルド
         run: docker build -t mamoritalk-${{ matrix.service }}:test ./services/${{ matrix.service }}
+
+  # ─── セキュリティスキャン ───
+
+  api-security-audit:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - run: npm install
+      - name: npm audit（high以上）
+        run: npm audit --audit-level=high || true
+
+  ai-security-audit:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/ai
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - run: pip install -r requirements.txt
+      - run: pip install pip-audit
+      - name: pip-audit
+        run: pip-audit || true
+
+  docker-security-scan:
+    runs-on: ubuntu-latest
+    needs: docker-build
+    strategy:
+      matrix:
+        service: [api, ai]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ${{ matrix.service }} イメージビルド
+        run: docker build -t mamoritalk-${{ matrix.service }}:test ./services/${{ matrix.service }}
+
+      - name: Trivy スキャン（CRITICAL/HIGH）
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: mamoritalk-${{ matrix.service }}:test
+          severity: CRITICAL,HIGH
+          exit-code: '0'
+          format: table
+
+  secret-scanning:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: GitLeaks シークレットスキャン
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

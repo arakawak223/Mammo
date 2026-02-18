@@ -176,6 +176,11 @@ resource "aws_ecs_task_definition" "api" {
       { name = "NODE_ENV", value = var.environment },
       { name = "PORT", value = "3000" },
       { name = "AI_SERVICE_URL", value = "http://localhost:8000" },
+      { name = "CORS_ORIGINS", value = var.cors_origins },
+    ]
+    secrets = [
+      { name = "JWT_SECRET", valueFrom = aws_secretsmanager_secret.jwt_secret.arn },
+      { name = "DATABASE_URL", valueFrom = aws_secretsmanager_secret.database_url.arn },
     ]
     logConfiguration = {
       logDriver = "awslogs"

@@ -46,7 +46,7 @@ describe('AuthService', () => {
       const result = await service.register({
         phone: '09012345678',
         name: 'テスト太郎',
-        password: 'password123',
+        password: 'Password1',
         role: 'elderly' as any,
       });
 
@@ -62,7 +62,7 @@ describe('AuthService', () => {
         service.register({
           phone: '09012345678',
           name: 'テスト太郎',
-          password: 'password123',
+          password: 'Password1',
           role: 'elderly' as any,
         }),
       ).rejects.toThrow(ConflictException);
@@ -83,7 +83,7 @@ describe('AuthService', () => {
 
       const result = await service.login({
         phone: '09012345678',
-        password: 'password123',
+        password: 'Password1',
       });
 
       expect(result.accessToken).toBe('mock-access-token');

@@ -1,10 +1,36 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  // WP-5: 本番環境でのJWT_SECRET検証
+  if (isProduction) {
+    const jwtSecret = process.env.JWT_SECRET;
+    if (
+      !jwtSecret ||
+      jwtSecret === 'dev-jwt-secret-change-in-production' ||
+      jwtSecret.length < 32
+    ) {
+      console.error(
+        'FATAL: JWT_SECRET must be set to a strong value (32+ chars) in production',
+      );
+      process.exit(1);
+    }
+  }
+
   const app = await NestFactory.create(AppModule);
+
+  // WP-1: Helmet セキュリティヘッダー
+  app.use(
+    helmet({
+      contentSecurityPolicy: isProduction ? undefined : false,
+      hsts: isProduction ? { maxAge: 31536000, includeSubDomains: true } : false,
+    }),
+  );
 
   app.setGlobalPrefix('api/v1');
   app.useGlobalPipes(
@@ -14,7 +40,19 @@ async function bootstrap() {
       transform: true,
     }),
   );
-  app.enableCors();
+
+  // WP-3: CORS環境別ホワイトリスト
+  if (isProduction && process.env.CORS_ORIGINS) {
+    const allowedOrigins = process.env.CORS_ORIGINS.split(',').map((o) =>
+      o.trim(),
+    );
+    app.enableCors({
+      origin: allowedOrigins,
+      credentials: true,
+    });
+  } else {
+    app.enableCors();
+  }
 
   const config = new DocumentBuilder()
     .setTitle('まもりトーク API')

@@ -70,3 +70,9 @@ variable "ai_memory" {
   type        = number
   default     = 1024
 }
+
+variable "cors_origins" {
+  description = "Comma-separated list of allowed CORS origins"
+  type        = string
+  default     = ""
+}

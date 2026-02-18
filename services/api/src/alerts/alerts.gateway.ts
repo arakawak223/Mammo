@@ -10,7 +10,13 @@ import { Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 
-@WebSocketGateway({ namespace: '/ws/alerts', cors: true })
+@WebSocketGateway({
+  namespace: '/ws/alerts',
+  cors:
+    process.env.NODE_ENV === 'production' && process.env.CORS_ORIGINS
+      ? { origin: process.env.CORS_ORIGINS.split(',').map((o) => o.trim()) }
+      : true,
+})
 export class AlertsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() server: Server;
   private logger = new Logger('AlertsGateway');

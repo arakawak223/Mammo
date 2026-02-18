@@ -1,13 +1,35 @@
 """まもりトーク AI解析サービス"""
 
 import json
+import os
 import re
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import HTMLResponse
 
 from app.routers import conversation, dark_job, health, metadata, summary
+
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+IS_PRODUCTION = ENVIRONMENT == "production"
+
+
+# WP-1: セキュリティヘッダーミドルウェア
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response: Response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        if IS_PRODUCTION:
+            response.headers["Strict-Transport-Security"] = (
+                "max-age=31536000; includeSubDomains"
+            )
+        return response
+
 
 app = FastAPI(
     title="まもりトーク AI解析サービス",
@@ -17,9 +39,18 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
+app.add_middleware(SecurityHeadersMiddleware)
+
+# WP-3: CORS環境別ホワイトリスト
+if IS_PRODUCTION:
+    cors_origins_str = os.getenv("CORS_ORIGINS", "")
+    cors_origins = [o.strip() for o in cors_origins_str.split(",") if o.strip()]
+else:
+    cors_origins = ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

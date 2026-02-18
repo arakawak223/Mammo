@@ -1,4 +1,11 @@
-import { IsString, IsEnum, IsOptional, MinLength, Matches } from 'class-validator';
+import {
+  IsString,
+  IsEnum,
+  IsOptional,
+  MinLength,
+  MaxLength,
+  Matches,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class RegisterDto {
@@ -12,9 +19,16 @@ export class RegisterDto {
   @MinLength(1)
   name: string;
 
-  @ApiProperty({ example: 'password123', description: 'パスワード（8文字以上）' })
+  @ApiProperty({
+    example: 'Password1',
+    description: 'パスワード（8〜128文字、英大文字・小文字・数字を各1文字以上）',
+  })
   @IsString()
-  @MinLength(8)
+  @MinLength(8, { message: 'パスワードは8文字以上で入力してください' })
+  @MaxLength(128, { message: 'パスワードは128文字以下で入力してください' })
+  @Matches(/[A-Z]/, { message: 'パスワードに英大文字を1文字以上含めてください' })
+  @Matches(/[a-z]/, { message: 'パスワードに英小文字を1文字以上含めてください' })
+  @Matches(/[0-9]/, { message: 'パスワードに数字を1文字以上含めてください' })
   password: string;
 
   @ApiProperty({

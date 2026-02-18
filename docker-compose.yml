@@ -34,11 +34,12 @@ services:
     ports:
       - '3000:3000'
     environment:
-      DATABASE_URL: postgresql://mamori:mamori_dev@postgres:5432/mamori_talk
-      REDIS_URL: redis://redis:6379
-      JWT_SECRET: dev-jwt-secret-change-in-production
-      AI_SERVICE_URL: http://ai:8000
-      NODE_ENV: development
+      DATABASE_URL: ${DATABASE_URL:-postgresql://mamori:mamori_dev@postgres:5432/mamori_talk}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-change-in-production}
+      AI_SERVICE_URL: ${AI_SERVICE_URL:-http://ai:8000}
+      NODE_ENV: ${NODE_ENV:-development}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -52,7 +53,8 @@ services:
     ports:
       - '8000:8000'
     environment:
-      ENVIRONMENT: development
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
 
 volumes:
   postgres_data:

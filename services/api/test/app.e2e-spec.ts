@@ -66,7 +66,7 @@ describe('MamoriTalk API (e2e)', () => {
         .post('/api/v1/auth/register')
         .send({
           phone: elderlyPhone,
-          password: 'test1234',
+          password: 'Test1234',
           name: 'テスト高齢者',
           role: 'elderly',
         })
@@ -84,7 +84,7 @@ describe('MamoriTalk API (e2e)', () => {
         .post('/api/v1/auth/register')
         .send({
           phone: familyPhone,
-          password: 'test1234',
+          password: 'Test1234',
           name: 'テスト家族',
           role: 'family_owner',
         })
@@ -100,7 +100,7 @@ describe('MamoriTalk API (e2e)', () => {
         .post('/api/v1/auth/register')
         .send({
           phone: elderlyPhone,
-          password: 'test1234',
+          password: 'Test1234',
           name: '重複',
           role: 'elderly',
         })
@@ -425,7 +425,7 @@ describe('MamoriTalk API (e2e)', () => {
         .post('/api/v1/auth/register')
         .send({
           phone: '09099999999',
-          password: 'test1234',
+          password: 'Test1234',
           name: 'テスト',
           role: 'admin',
         })

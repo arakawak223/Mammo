@@ -1,0 +1,15 @@
+title = "MamoriTalk GitLeaks Config"
+
+[allowlist]
+  description = "開発用デフォルト値のホワイトリスト"
+  regexTarget = "match"
+  regexes = [
+    '''dev-jwt-secret-change-in-production''',
+    '''mamori_dev''',
+    '''test-jwt-secret''',
+    '''test_password''',
+  ]
+  paths = [
+    '''\.env\.example''',
+    '''docker-compose\.yml''',
+  ]

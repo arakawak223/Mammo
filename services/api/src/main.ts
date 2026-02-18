@@ -79,7 +79,14 @@ async function bootstrap() {
     .setTitle('まもりトーク API')
     .setDescription(
       '特殊詐欺・強盗対策アプリ「まもりトーク」のバックエンドAPIです。' +
-      '認証、イベント管理、AI解析、ブロックリスト、統計などの機能を提供します。',
+      '認証、イベント管理、AI解析、ブロックリスト、統計などの機能を提供します。' +
+      '\n\n### 共通レスポンスヘッダー\n' +
+      '| ヘッダー | 説明 |\n' +
+      '|---------|------|\n' +
+      '| X-Request-ID | リクエスト追跡ID（相関ID） |\n' +
+      '| X-RateLimit-Limit | レート制限の上限値 |\n' +
+      '| X-RateLimit-Remaining | 残りリクエスト数 |\n' +
+      '| X-RateLimit-Reset | 制限リセット時刻（Unix秒） |',
     )
     .setVersion('0.2.0')
     .addBearerAuth({

@@ -388,6 +388,96 @@ describe('MamoriTalk API (e2e)', () => {
   });
 
   // ==========================================
+  // Auth: Refresh & Logout
+  // ==========================================
+  describe('Auth: Refresh & Logout', () => {
+    let refreshTokenValue: string;
+
+    it('POST /auth/login - get refresh token', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/auth/login')
+        .send({ phone: elderlyPhone, password: 'test1234' })
+        .expect(201);
+
+      expect(res.body.refreshToken).toBeDefined();
+      refreshTokenValue = res.body.refreshToken;
+      elderlyToken = res.body.accessToken;
+    });
+
+    it('POST /auth/refresh - should return new tokens', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/auth/refresh')
+        .send({ refreshToken: refreshTokenValue })
+        .expect(201);
+
+      expect(res.body.accessToken).toBeDefined();
+      expect(res.body.refreshToken).toBeDefined();
+      elderlyToken = res.body.accessToken;
+    });
+
+    it('POST /auth/refresh - old token should be invalid', async () => {
+      await request(app.getHttpServer())
+        .post('/api/v1/auth/refresh')
+        .send({ refreshToken: refreshTokenValue })
+        .expect(401);
+    });
+
+    it('POST /auth/logout - should revoke all tokens', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/auth/logout')
+        .set('Authorization', `Bearer ${elderlyToken}`)
+        .expect(201);
+
+      expect(res.body.message).toBe('ログアウトしました');
+      expect(res.body.revokedTokens).toBeGreaterThanOrEqual(0);
+    });
+
+    it('POST /auth/logout - requires authentication', async () => {
+      await request(app.getHttpServer())
+        .post('/api/v1/auth/logout')
+        .expect(401);
+    });
+
+    // Re-login for remaining tests
+    it('POST /auth/login - re-login after logout', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/auth/login')
+        .send({ phone: elderlyPhone, password: 'test1234' })
+        .expect(201);
+
+      elderlyToken = res.body.accessToken;
+    });
+  });
+
+  // ==========================================
+  // Health Check: Dependencies
+  // ==========================================
+  describe('Health: Dependencies', () => {
+    it('should return dependencies status', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/health')
+        .expect(200);
+
+      expect(res.body).toHaveProperty('dependencies');
+      expect(res.body).toHaveProperty('uptime');
+      expect(res.body).toHaveProperty('timestamp');
+      expect(res.body.dependencies).toHaveProperty('database');
+      expect(res.body.dependencies).toHaveProperty('redis');
+      expect(res.body.dependencies).toHaveProperty('ai');
+      expect(res.body.dependencies.database).toHaveProperty('responseTime');
+    });
+
+    it('should always return HTTP 200', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/health')
+        .expect(200);
+
+      // status can be 'ok' or 'degraded', but always 200
+      expect(['ok', 'degraded']).toContain(res.body.status);
+    });
+  });
+
+  // ==========================================
   // Input Validation
   // ==========================================
   describe('Validation', () => {

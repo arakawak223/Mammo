@@ -5,6 +5,8 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  // 接続プール: connection_limit はDATABASE_URLのクエリパラメータで設定
+  // 例: postgresql://...?connection_limit=10&pool_timeout=10
 }
 
 // ─── ユーザー ───

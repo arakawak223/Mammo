@@ -58,7 +58,6 @@ export class BlocklistController {
   })
   @ApiParam({ name: 'elderlyId', description: '高齢者ユーザーID' })
   syncBlocklist(
-    @Req() req: any,
     @Param('elderlyId') elderlyId: string,
     @Body() dto: SyncBlocklistDto,
   ) {

@@ -5,6 +5,7 @@ import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisCacheService } from '../common/cache/redis-cache.service';
 import { createMockPrisma } from '../test/prisma-mock.helper';
 
 jest.mock('bcrypt');
@@ -14,10 +15,17 @@ describe('AuthService', () => {
   let service: AuthService;
   let prisma: ReturnType<typeof createMockPrisma>;
   let jwtService: { sign: jest.Mock };
+  let cacheService: { get: jest.Mock; set: jest.Mock; del: jest.Mock; delByPattern: jest.Mock };
 
   beforeEach(async () => {
     prisma = createMockPrisma();
     jwtService = { sign: jest.fn().mockReturnValue('mock-access-token') };
+    cacheService = {
+      get: jest.fn().mockResolvedValue(null),
+      set: jest.fn().mockResolvedValue(undefined),
+      del: jest.fn().mockResolvedValue(undefined),
+      delByPattern: jest.fn().mockResolvedValue(undefined),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -25,6 +33,7 @@ describe('AuthService', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: JwtService, useValue: jwtService },
         { provide: ConfigService, useValue: { get: jest.fn() } },
+        { provide: RedisCacheService, useValue: cacheService },
       ],
     }).compile();
 

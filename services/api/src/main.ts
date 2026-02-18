@@ -1,8 +1,14 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { Logger } from 'nestjs-pino';
 import helmet from 'helmet';
+import compression from 'compression';
+import * as express from 'express';
 import { AppModule } from './app.module';
+import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { AuditLogInterceptor } from './common/interceptors/audit-log.interceptor';
+import { SanitizePipe } from './common/pipes/sanitize.pipe';
 
 async function bootstrap() {
   const isProduction = process.env.NODE_ENV === 'production';
@@ -22,7 +28,21 @@ async function bootstrap() {
     }
   }
 
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  app.useLogger(app.get(Logger));
+  app.useGlobalFilters(new GlobalExceptionFilter());
+  app.useGlobalInterceptors(new AuditLogInterceptor());
+
+  // レスポンス圧縮（gzip）
+  app.use(compression());
+
+  // リクエストボディサイズ制限（1MB）
+  app.use(express.json({ limit: '1mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+
+  // サーバータイムアウト（30秒）
+  const server = app.getHttpServer();
+  server.setTimeout(30000);
 
   // WP-1: Helmet セキュリティヘッダー
   app.use(
@@ -34,6 +54,7 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api/v1');
   app.useGlobalPipes(
+    new SanitizePipe(),
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
@@ -86,8 +107,13 @@ async function bootstrap() {
     },
   });
 
+  // グレースフルシャットダウン
+  app.enableShutdownHooks();
+
   const port = process.env.PORT || 3000;
   await app.listen(port);
-  console.log(`MamoriTalk API running on port ${port}`);
+
+  const logger = app.get(Logger);
+  logger.log(`MamoriTalk API running on port ${port}`);
 }
 bootstrap();

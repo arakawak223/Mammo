@@ -1,0 +1,85 @@
+version: 2
+updates:
+  # NestJS API (npm)
+  - package-ecosystem: npm
+    directory: /services/api
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+      - api
+    commit-message:
+      prefix: 'deps(api):'
+
+  # FastAPI AI (pip)
+  - package-ecosystem: pip
+    directory: /services/ai
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - ai
+    commit-message:
+      prefix: 'deps(ai):'
+
+  # Mobile (npm)
+  - package-ecosystem: npm
+    directory: /apps/mobile
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+      - mobile
+    commit-message:
+      prefix: 'deps(mobile):'
+
+  # Shared packages (npm)
+  - package-ecosystem: npm
+    directory: /packages/shared
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - shared
+    commit-message:
+      prefix: 'deps(shared):'
+
+  # Docker
+  - package-ecosystem: docker
+    directory: /services/api
+    schedule:
+      interval: weekly
+    labels:
+      - dependencies
+      - docker
+    commit-message:
+      prefix: 'deps(docker):'
+
+  - package-ecosystem: docker
+    directory: /services/ai
+    schedule:
+      interval: weekly
+    labels:
+      - dependencies
+      - docker
+    commit-message:
+      prefix: 'deps(docker):'
+
+  # GitHub Actions
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    labels:
+      - dependencies
+      - ci
+    commit-message:
+      prefix: 'deps(ci):'

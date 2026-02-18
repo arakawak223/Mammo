@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Header, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { StatisticsService } from './statistics.service';
 import { GetStatisticsDto } from './dto/get-statistics.dto';
@@ -12,6 +12,7 @@ export class StatisticsController {
   constructor(private statisticsService: StatisticsService) {}
 
   @Get()
+  @Header('Cache-Control', 'private, max-age=300')
   @ApiOperation({
     summary: '都道府県別詐欺統計取得',
     description: '都道府県を指定して詐欺統計を取得します。未指定の場合は全国集計を返します。',
@@ -24,6 +25,7 @@ export class StatisticsController {
   }
 
   @Get('national')
+  @Header('Cache-Control', 'private, max-age=300')
   @ApiOperation({
     summary: '全国集計統計',
     description: '全国の詐欺統計を集計して返します。',
@@ -34,6 +36,7 @@ export class StatisticsController {
   }
 
   @Get('top')
+  @Header('Cache-Control', 'private, max-age=300')
   @ApiOperation({
     summary: 'ワースト都道府県ランキング',
     description: '詐欺被害件数の多い都道府県を上位から取得します。',

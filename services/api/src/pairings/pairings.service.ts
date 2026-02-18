@@ -5,7 +5,6 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreatePairingDto } from './dto/create-pairing.dto';
 import { JoinPairingDto } from './dto/join-pairing.dto';
 import { nanoid } from 'nanoid';
 

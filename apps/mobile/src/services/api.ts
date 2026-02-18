@@ -8,7 +8,7 @@ let refreshPromise: Promise<boolean> | null = null;
 async function silentRefresh(): Promise<boolean> {
   const { refreshToken, setAuth, logout } = useAuthStore.getState();
   if (!refreshToken) {
-    logout();
+    await logout();
     return false;
   }
   try {
@@ -18,14 +18,14 @@ async function silentRefresh(): Promise<boolean> {
       body: JSON.stringify({ refreshToken }),
     });
     if (!response.ok) {
-      logout();
+      await logout();
       return false;
     }
     const data = await response.json();
     setAuth(data.user, data.accessToken, data.refreshToken);
     return true;
   } catch {
-    logout();
+    await logout();
     return false;
   }
 }
@@ -84,6 +84,15 @@ export const api = {
     request('/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),
+    }),
+
+  logout: () =>
+    request('/auth/logout', { method: 'POST' }),
+
+  updateDeviceToken: (deviceToken: string) =>
+    request('/auth/device-token', {
+      method: 'POST',
+      body: JSON.stringify({ deviceToken }),
     }),
 
   // Events

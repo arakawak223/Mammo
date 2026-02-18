@@ -1,4 +1,5 @@
 import { Controller, Post, Body, UseGuards, Req } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiProperty } from '@nestjs/swagger';
 import { IsString, IsOptional } from 'class-validator';
 import { AiService } from './ai.service';
@@ -35,6 +36,7 @@ const CONSULTATION_CONTACTS = [
 export class AiController {
   constructor(private aiService: AiService) {}
 
+  @Throttle({ default: { ttl: 60000, limit: 10 } })
   @Post('dark-job-check')
   @ApiOperation({
     summary: '闇バイトチェッカー',
@@ -48,6 +50,7 @@ export class AiController {
     };
   }
 
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   @Post('voice-analyze')
   @ApiOperation({
     summary: 'AI音声解析（transcript受信）',

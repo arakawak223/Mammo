@@ -1,8 +1,8 @@
 import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisCacheService } from '../common/cache/redis-cache.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { nanoid } from 'nanoid';
@@ -12,7 +12,7 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwt: JwtService,
-    private config: ConfigService,
+    private cache: RedisCacheService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -70,6 +70,17 @@ export class AuthService {
 
     const tokens = await this.generateTokens(stored.user.id, stored.user.role);
     return tokens;
+  }
+
+  async logout(userId: string, iat?: number) {
+    const result = await this.prisma.refreshToken.deleteMany({
+      where: { userId },
+    });
+    // Access tokenも無効化（15分TTL = トークン有効期限）
+    if (iat) {
+      await this.cache.set(`token:blacklist:${userId}:${iat}`, true, 900);
+    }
+    return { message: 'ログアウトしました', revokedTokens: result.count };
   }
 
   async updateDeviceToken(userId: string, deviceToken: string) {

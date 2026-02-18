@@ -129,7 +129,7 @@ describe('SosService', () => {
       });
       prisma.sosSession.update.mockResolvedValue({ id: 'sos-1' });
 
-      const result = await service.updateLocation('sos-1', {
+      await service.updateLocation('sos-1', {
         latitude: 35.001,
         longitude: 139.001,
         accuracy: 10,
@@ -181,7 +181,7 @@ describe('SosService', () => {
       prisma.pairing.findFirst.mockResolvedValue({ id: 'pair-1' });
       prisma.sosSession.update.mockResolvedValue({ id: 'sos-1', mode: 'silent' });
 
-      const result = await service.changeMode('sos-1', 'silent', 'family-1');
+      await service.changeMode('sos-1', 'silent', 'family-1');
 
       expect(prisma.sosSession.update).toHaveBeenCalledWith(
         expect.objectContaining({

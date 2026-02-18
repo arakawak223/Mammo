@@ -1,8 +1,13 @@
 """ヘルスチェックエンドポイント"""
 
+import time
+from datetime import datetime, timezone
+
 from fastapi import APIRouter
 
 router = APIRouter()
+
+_start_time = time.time()
 
 
 @router.get(
@@ -13,4 +18,9 @@ router = APIRouter()
 )
 async def health_check():
     """サービスの稼働状態を確認します。"""
-    return {"status": "ok", "service": "mamoritalk-ai"}
+    return {
+        "status": "ok",
+        "service": "mamoritalk-ai",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "uptime": int(time.time() - _start_time),
+    }

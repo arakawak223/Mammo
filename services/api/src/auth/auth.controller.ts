@@ -34,6 +34,14 @@ export class AuthController {
     return this.authService.refreshToken(dto.refreshToken);
   }
 
+  @Post('logout')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'ログアウト（全リフレッシュトークン取消）' })
+  logout(@Req() req: any) {
+    return this.authService.logout(req.user.id, req.user.iat);
+  }
+
   @Post('device-token')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

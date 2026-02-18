@@ -76,3 +76,39 @@ variable "cors_origins" {
   type        = string
   default     = ""
 }
+
+variable "alarm_email" {
+  description = "Email address for CloudWatch alarm notifications"
+  type        = string
+  default     = ""
+}
+
+variable "api_min_count" {
+  description = "Minimum number of API ECS tasks"
+  type        = number
+  default     = 1
+}
+
+variable "api_max_count" {
+  description = "Maximum number of API ECS tasks"
+  type        = number
+  default     = 4
+}
+
+variable "ai_min_count" {
+  description = "Minimum number of AI ECS tasks"
+  type        = number
+  default     = 1
+}
+
+variable "ai_max_count" {
+  description = "Maximum number of AI ECS tasks"
+  type        = number
+  default     = 3
+}
+
+variable "domain_name" {
+  description = "Domain name for ACM certificate (e.g. api.mamoritalk.jp)"
+  type        = string
+  default     = ""
+}

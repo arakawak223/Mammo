@@ -1,7 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { StatisticsService } from './statistics.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisCacheService } from '../common/cache/redis-cache.service';
 import { createMockPrisma } from '../test/prisma-mock.helper';
+
+const mockCache = {
+  get: jest.fn().mockResolvedValue(null),
+  set: jest.fn().mockResolvedValue(undefined),
+  del: jest.fn().mockResolvedValue(undefined),
+  delByPattern: jest.fn().mockResolvedValue(undefined),
+};
 
 describe('StatisticsService', () => {
   let service: StatisticsService;
@@ -9,11 +17,13 @@ describe('StatisticsService', () => {
 
   beforeEach(async () => {
     prisma = createMockPrisma();
+    mockCache.get.mockResolvedValue(null);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         StatisticsService,
         { provide: PrismaService, useValue: prisma },
+        { provide: RedisCacheService, useValue: mockCache },
       ],
     }).compile();
 

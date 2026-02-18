@@ -1,18 +1,52 @@
 """まもりトーク AI解析サービス"""
 
 import json
+import logging
 import os
 import re
+import time
+import uuid
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import HTMLResponse
 
+from app.logging_config import setup_logging
 from app.routers import conversation, dark_job, health, metadata, summary
+
+# ログ初期化
+setup_logging()
+logger = logging.getLogger(__name__)
 
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 IS_PRODUCTION = ENVIRONMENT == "production"
+
+
+# グレースフルシャットダウン
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("AI service starting up")
+    yield
+    logger.info("AI service shutting down gracefully")
+
+
+# リクエストサイズ制限ミドルウェア（1MB）
+MAX_REQUEST_SIZE = 1 * 1024 * 1024  # 1MB
+
+
+class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        content_length = request.headers.get("content-length")
+        if content_length and int(content_length) > MAX_REQUEST_SIZE:
+            return JSONResponse(
+                status_code=413,
+                content={"detail": "リクエストボディが大きすぎます（上限: 1MB）"},
+            )
+        return await call_next(request)
 
 
 # WP-1: セキュリティヘッダーミドルウェア
@@ -31,15 +65,85 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 
+# WP-3: 相関IDミドルウェア
+class CorrelationIdMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        request_id = request.headers.get("x-request-id") or str(uuid.uuid4())
+        # ログにリクエストID付与
+        logger_ctx = logging.LoggerAdapter(
+            logging.getLogger("request"),
+            {"request_id": request_id},
+        )
+        request.state.request_id = request_id
+        response: Response = await call_next(request)
+        response.headers["X-Request-ID"] = request_id
+        return response
+
+
+# WP-6: Prometheusメトリクスミドルウェア
+http_requests_total = Counter(
+    "http_requests_total",
+    "Total HTTP requests",
+    ["method", "path", "status_code"],
+)
+http_request_duration_seconds = Histogram(
+    "http_request_duration_seconds",
+    "HTTP request duration in seconds",
+    ["method", "path"],
+    buckets=[0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10],
+)
+
+
+class MetricsMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        start = time.time()
+        response: Response = await call_next(request)
+        duration = time.time() - start
+        path = request.url.path
+        http_requests_total.labels(
+            method=request.method, path=path, status_code=response.status_code
+        ).inc()
+        http_request_duration_seconds.labels(
+            method=request.method, path=path
+        ).observe(duration)
+        return response
+
+
+# WP-2: リクエストログミドルウェア
+class RequestLoggingMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        start = time.time()
+        response: Response = await call_next(request)
+        duration_ms = round((time.time() - start) * 1000, 2)
+        request_id = getattr(request.state, "request_id", "-")
+        logger.info(
+            "request completed",
+            extra={
+                "method": request.method,
+                "path": request.url.path,
+                "status_code": response.status_code,
+                "duration_ms": duration_ms,
+                "request_id": request_id,
+            },
+        )
+        return response
+
+
 app = FastAPI(
     title="まもりトーク AI解析サービス",
     description="詐欺検知・闇バイトチェック・会話サマリーなどのAI解析APIを提供します。",
     version="0.2.0",
     docs_url=None,  # カスタムdocsを使用するため無効化
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
+# ミドルウェア登録（逆順で実行される）
+app.add_middleware(RequestLoggingMiddleware)
+app.add_middleware(MetricsMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RequestSizeLimitMiddleware)
+app.add_middleware(CorrelationIdMiddleware)
 
 # WP-3: CORS環境別ホワイトリスト
 if IS_PRODUCTION:
@@ -56,11 +160,41 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+# WP-4: グローバル例外ハンドラ
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    request_id = getattr(request.state, "request_id", "unknown")
+    logger.error(
+        "Unhandled exception: %s",
+        str(exc),
+        extra={"request_id": request_id},
+        exc_info=True,
+    )
+    return JSONResponse(
+        status_code=500,
+        content={
+            "statusCode": 500,
+            "error": "Internal Server Error",
+            "message": "予期しないエラーが発生しました",
+            "requestId": request_id,
+            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S+00:00", time.gmtime()),
+        },
+    )
+
+
 app.include_router(health.router, tags=["ヘルスチェック"])
 app.include_router(conversation.router, prefix="/api/v1", tags=["会話解析"])
 app.include_router(dark_job.router, prefix="/api/v1", tags=["闇バイトチェック"])
 app.include_router(metadata.router, prefix="/api/v1", tags=["着信メタデータ解析"])
 app.include_router(summary.router, prefix="/api/v1", tags=["会話サマリー"])
+
+
+# WP-6: Prometheusメトリクスエンドポイント
+@app.get("/metrics", include_in_schema=False)
+async def metrics():
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
 
 # ── スキーマ名の日本語マッピング ──
 SCHEMA_RENAMES = {
@@ -69,7 +203,7 @@ SCHEMA_RENAMES = {
     "ConversationSummaryRequest": "会話サマリーリクエスト",
     "ConversationSummaryResponse": "会話サマリーレスポンス",
     "DarkJobCheckRequest": "闇バイトチェックリクエスト",
-    "DarkJobCheckResponse": "闇バイトチェックレスポンス",
+    "DarkJobCheckResponse": "闘バイトチェックレスポンス",
     "MetadataRequest": "メタデータ解析リクエスト",
     "MetadataResponse": "メタデータ解析レスポンス",
     "QuickCheckRequest": "クイックチェックリクエスト",

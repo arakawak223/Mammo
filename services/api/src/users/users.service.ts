@@ -20,4 +20,11 @@ export class UsersService {
     });
     return pairings.map((p) => ({ ...p.family, pairingRole: p.role }));
   }
+
+  async updateProfile(id: string, data: { name?: string; prefecture?: string }) {
+    return this.prisma.user.update({
+      where: { id },
+      data,
+    });
+  }
 }

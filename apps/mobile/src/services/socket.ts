@@ -10,6 +10,18 @@ function getToken(): string | null {
   return useAuthStore.getState().accessToken;
 }
 
+function log(...args: unknown[]) {
+  if (__DEV__) {
+    console.log(...args);
+  }
+}
+
+function warn(...args: unknown[]) {
+  if (__DEV__) {
+    console.warn(...args);
+  }
+}
+
 export function connectSosSocket(): Socket {
   if (sosSocket?.connected) return sosSocket;
 
@@ -17,20 +29,22 @@ export function connectSosSocket(): Socket {
     auth: { token: getToken() },
     transports: ['websocket'],
     reconnection: true,
-    reconnectionAttempts: 10,
+    reconnectionAttempts: 15,
     reconnectionDelay: 1000,
+    reconnectionDelayMax: 30000,
+    randomizationFactor: 0.3,
   });
 
   sosSocket.on('connect', () => {
-    console.log('[SOS WS] Connected');
+    log('[SOS WS] Connected');
   });
 
   sosSocket.on('disconnect', (reason) => {
-    console.log('[SOS WS] Disconnected:', reason);
+    log('[SOS WS] Disconnected:', reason);
   });
 
   sosSocket.on('connect_error', (error) => {
-    console.warn('[SOS WS] Connection error:', error.message);
+    warn('[SOS WS] Connection error:', error.message);
   });
 
   return sosSocket;
@@ -43,20 +57,22 @@ export function connectAlertsSocket(): Socket {
     auth: { token: getToken() },
     transports: ['websocket'],
     reconnection: true,
-    reconnectionAttempts: 10,
+    reconnectionAttempts: 15,
     reconnectionDelay: 1000,
+    reconnectionDelayMax: 30000,
+    randomizationFactor: 0.3,
   });
 
   alertsSocket.on('connect', () => {
-    console.log('[Alerts WS] Connected');
+    log('[Alerts WS] Connected');
   });
 
   alertsSocket.on('disconnect', (reason) => {
-    console.log('[Alerts WS] Disconnected:', reason);
+    log('[Alerts WS] Disconnected:', reason);
   });
 
   alertsSocket.on('connect_error', (error) => {
-    console.warn('[Alerts WS] Connection error:', error.message);
+    warn('[Alerts WS] Connection error:', error.message);
   });
 
   return alertsSocket;

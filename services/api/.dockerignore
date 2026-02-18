@@ -2,5 +2,12 @@ node_modules
 dist
 coverage
 .env
+.env.*
 *.spec.ts
 test
+.git
+.github
+*.md
+.eslintrc*
+.prettierrc*
+tsconfig.build.json

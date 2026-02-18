@@ -183,6 +183,26 @@ export function ElderlyHomeScreen({ navigation }: any) {
         </Pressable>
       </View>
 
+      {/* F5: Conversation Report Button */}
+      <Pressable
+        style={({ pressed }) => [styles.reportButton, pressed && styles.reportButtonPressed]}
+        onPress={() => navigation.navigate('ConversationInput')}
+        accessibilityLabel="通話を報告するボタン"
+        accessibilityRole="button"
+      >
+        <Text style={styles.reportButtonText}>通話を報告する</Text>
+      </Pressable>
+
+      {/* F3: Voice Assistant Button */}
+      <Pressable
+        style={({ pressed }) => [styles.voiceButton, pressed && styles.voiceButtonPressed]}
+        onPress={() => navigation.navigate('VoiceAssistant')}
+        accessibilityLabel="AI音声チェックボタン"
+        accessibilityRole="button"
+      >
+        <Text style={styles.voiceButtonText}>AI音声チェック</Text>
+      </Pressable>
+
       {/* F9: SOS Button */}
       <Pressable
         style={({ pressed }) => [styles.sosButton, pressed && styles.sosButtonPressed]}
@@ -270,12 +290,44 @@ const styles = StyleSheet.create({
     opacity: 0.9,
     textAlign: 'center',
   },
+  reportButton: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 16,
+    paddingVertical: 18,
+    alignItems: 'center',
+    marginTop: 12,
+    elevation: 4,
+  },
+  reportButtonPressed: {
+    backgroundColor: '#0D47A1',
+  },
+  reportButtonText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  voiceButton: {
+    backgroundColor: '#7B1FA2',
+    borderRadius: 16,
+    paddingVertical: 18,
+    alignItems: 'center',
+    marginTop: 10,
+    elevation: 4,
+  },
+  voiceButtonPressed: {
+    backgroundColor: '#4A148C',
+  },
+  voiceButtonText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
   sosButton: {
     backgroundColor: COLORS.warning,
     borderRadius: 16,
     paddingVertical: 20,
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: 12,
     elevation: 4,
   },
   sosButtonPressed: {

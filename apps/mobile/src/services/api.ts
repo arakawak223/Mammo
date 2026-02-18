@@ -2,6 +2,34 @@ import { useAuthStore } from '../store/authStore';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
+let isRefreshing = false;
+let refreshPromise: Promise<boolean> | null = null;
+
+async function silentRefresh(): Promise<boolean> {
+  const { refreshToken, setAuth, logout } = useAuthStore.getState();
+  if (!refreshToken) {
+    logout();
+    return false;
+  }
+  try {
+    const response = await fetch(`${API_BASE}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+    });
+    if (!response.ok) {
+      logout();
+      return false;
+    }
+    const data = await response.json();
+    setAuth(data.user, data.accessToken, data.refreshToken);
+    return true;
+  } catch {
+    logout();
+    return false;
+  }
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const { accessToken } = useAuthStore.getState();
 
@@ -14,10 +42,27 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     headers['Authorization'] = `Bearer ${accessToken}`;
   }
 
-  const response = await fetch(`${API_BASE}${path}`, {
+  let response = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers,
   });
+
+  // Silent refresh on 401
+  if (response.status === 401 && accessToken) {
+    if (!isRefreshing) {
+      isRefreshing = true;
+      refreshPromise = silentRefresh().finally(() => {
+        isRefreshing = false;
+        refreshPromise = null;
+      });
+    }
+    const refreshed = await (refreshPromise ?? Promise.resolve(false));
+    if (refreshed) {
+      const newToken = useAuthStore.getState().accessToken;
+      headers['Authorization'] = `Bearer ${newToken}`;
+      response = await fetch(`${API_BASE}${path}`, { ...options, headers });
+    }
+  }
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
@@ -98,6 +143,12 @@ export const api = {
   removeBlockedNumber: (elderlyId: string, numberId: string) =>
     request(`/elderly/${elderlyId}/blocklist/${numberId}`, { method: 'DELETE' }),
 
+  syncBlocklist: (elderlyId: string, numberIds: string[]) =>
+    request(`/elderly/${elderlyId}/blocklist/sync`, {
+      method: 'POST',
+      body: JSON.stringify({ numberIds }),
+    }),
+
   // Pairings
   createInvite: (elderlyId: string) =>
     request('/pairings', {
@@ -112,4 +163,37 @@ export const api = {
     }),
 
   getPairings: () => request('/pairings'),
+
+  // Statistics (F8)
+  getStatistics: (params?: { prefecture?: string; yearMonth?: string }) =>
+    request(`/statistics?${new URLSearchParams(params as Record<string, string> || {}).toString()}`),
+
+  getStatisticsNational: () => request('/statistics/national'),
+
+  getTopPrefectures: (limit = 10) => request(`/statistics/top?limit=${limit}`),
+
+  // Dark Job Checker (F7)
+  checkDarkJob: (text: string) =>
+    request('/ai/dark-job-check', {
+      method: 'POST',
+      body: JSON.stringify({ text }),
+    }),
+
+  // Conversation Summary (F5)
+  reportConversation: (data: { text: string; elderlyId?: string }) =>
+    request('/events', {
+      method: 'POST',
+      body: JSON.stringify({
+        type: 'conversation_ai',
+        severity: 'medium',
+        payload: { conversationText: data.text },
+      }),
+    }),
+
+  // Voice Analyze (F3)
+  voiceAnalyze: (transcript: string) =>
+    request('/ai/voice-analyze', {
+      method: 'POST',
+      body: JSON.stringify({ transcript }),
+    }),
 };

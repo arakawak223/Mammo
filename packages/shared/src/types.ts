@@ -110,7 +110,7 @@ export interface AiAnalysisResponse {
   summary: string;
   riskScore: number;
   scamType: ScamType;
-  recommendedActions: string[];
+  recommendedActions?: string[];
   createdAt: string;
 }
 
@@ -132,6 +132,31 @@ export interface ConsultationContact {
   name: string;
   phone: string;
   description: string;
+}
+
+// ─── Conversation Summary (F5) ───
+export interface ConversationSummaryResponse {
+  riskScore: number;
+  scamType: string;
+  summary: string;
+  keyPoints: string[];
+  recommendedActions: string[];
+  modelVersion: string;
+}
+
+// ─── Voice Analyze (F3) ───
+export interface VoiceAnalyzeRequest {
+  transcript: string;
+}
+
+export interface VoiceAnalyzeResponse {
+  eventId: string;
+  riskScore: number;
+  scamType: string;
+  summary: string;
+  keyPoints: string[];
+  recommendedActions: string[];
+  modelVersion: string;
 }
 
 // ─── WebSocket Event Types ───

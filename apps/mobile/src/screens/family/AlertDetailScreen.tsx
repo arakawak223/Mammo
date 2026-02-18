@@ -45,7 +45,25 @@ interface EventDetail {
     scamType: string;
     summary: string;
     modelVersion: string;
+    rawText?: string;
   } | null;
+}
+
+function getRecommendedActions(riskScore: number): string[] {
+  if (riskScore >= 60) {
+    return [
+      'すぐに電話を切ってください',
+      '家族に相談してください',
+      '警察相談ダイヤル（#9110）に連絡してください',
+    ];
+  }
+  if (riskScore >= 30) {
+    return [
+      '相手の身元を確認してください',
+      '家族に内容を共有してください',
+    ];
+  }
+  return ['引き続き注意してください'];
 }
 
 export function AlertDetailScreen({ route, navigation }: any) {
@@ -142,6 +160,26 @@ export function AlertDetailScreen({ route, navigation }: any) {
             <Text style={styles.aiLabel}>解析結果</Text>
             <Text style={styles.aiSummary}>{ai.summary}</Text>
           </View>
+
+          {ai.rawText && (
+            <View style={styles.aiRow}>
+              <Text style={styles.aiLabel}>報告内容</Text>
+              <Text style={styles.aiSummary}>{ai.rawText}</Text>
+            </View>
+          )}
+
+          {/* Recommended Actions */}
+          {ai.riskScore >= 30 && (
+            <View style={styles.actionsSection}>
+              <Text style={styles.actionsTitle}>推奨アクション</Text>
+              {getRecommendedActions(ai.riskScore).map((action, i) => (
+                <View key={i} style={styles.actionItem}>
+                  <Text style={styles.actionBullet}>・</Text>
+                  <Text style={styles.actionText}>{action}</Text>
+                </View>
+              ))}
+            </View>
+          )}
 
           <Text style={styles.aiVersion}>モデル: {ai.modelVersion}</Text>
         </View>
@@ -240,4 +278,9 @@ const styles = StyleSheet.create({
   blockButton: { backgroundColor: COLORS.danger },
   safeButton: { backgroundColor: COLORS.safe },
   buttonText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
+  actionsSection: { marginTop: 12, borderTopWidth: 1, borderTopColor: COLORS.border, paddingTop: 10 },
+  actionsTitle: { fontSize: 15, fontWeight: '600', color: COLORS.text, marginBottom: 6 },
+  actionItem: { flexDirection: 'row', marginBottom: 4 },
+  actionBullet: { fontSize: 14, color: COLORS.warning, marginRight: 4 },
+  actionText: { fontSize: 14, color: COLORS.text, flex: 1 },
 });

@@ -10,6 +10,7 @@ import { SosModule } from './sos/sos.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { HealthModule } from './health/health.module';
 import { AlertsModule } from './alerts/alerts.module';
+import { StatisticsModule } from './statistics/statistics.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { AlertsModule } from './alerts/alerts.module';
     SosModule,
     NotificationsModule,
     AlertsModule,
+    StatisticsModule,
   ],
 })
 export class AppModule {}

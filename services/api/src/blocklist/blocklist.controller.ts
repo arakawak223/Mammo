@@ -2,6 +2,7 @@ import { Controller, Get, Post, Delete, Body, Param, UseGuards, Req } from '@nes
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { BlocklistService } from './blocklist.service';
 import { AddBlockedNumberDto } from './dto/add-blocked-number.dto';
+import { SyncBlocklistDto } from './dto/sync-blocklist.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('blocklist')
@@ -35,5 +36,15 @@ export class BlocklistController {
     @Param('numberId') numberId: string,
   ) {
     return this.blocklistService.removeNumber(elderlyId, numberId, req.user.id);
+  }
+
+  @Post('sync')
+  @ApiOperation({ summary: 'ブロックリスト同期完了マーク' })
+  syncBlocklist(
+    @Req() req: any,
+    @Param('elderlyId') elderlyId: string,
+    @Body() dto: SyncBlocklistDto,
+  ) {
+    return this.blocklistService.markSynced(elderlyId, dto.numberIds);
   }
 }

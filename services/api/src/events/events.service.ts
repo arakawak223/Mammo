@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AiService } from '../ai/ai.service';
 import { AutoForwardService } from './auto-forward.service';
+import { AlertsGateway } from '../alerts/alerts.gateway';
 import { CreateEventDto } from './dto/create-event.dto';
 
 @Injectable()
@@ -12,6 +13,7 @@ export class EventsService {
     private notifications: NotificationsService,
     private aiService: AiService,
     private autoForwardService: AutoForwardService,
+    private alertsGateway: AlertsGateway,
   ) {}
 
   async create(elderlyId: string, dto: CreateEventDto) {
@@ -26,11 +28,16 @@ export class EventsService {
       },
     });
 
-    // Trigger AI analysis for scam_button and auto_forward (non-blocking)
+    // Trigger AI analysis for scam_button, auto_forward, and conversation_ai (non-blocking)
     if (dto.type === 'scam_button') {
       const text = (dto.payload as any)?.conversationText || '';
       if (text) {
         this.aiService.analyzeConversation(event.id, text).catch(() => {});
+      }
+    } else if (dto.type === 'conversation_ai') {
+      const text = (dto.payload as any)?.conversationText || '';
+      if (text) {
+        this.aiService.analyzeConversationSummary(event.id, text).catch(() => {});
       }
     } else if (dto.type === 'auto_forward') {
       const payload = dto.payload as any;
@@ -83,6 +90,9 @@ export class EventsService {
       });
     }
 
+    // Emit real-time WebSocket alert
+    this.alertsGateway.emitNewAlert(elderlyId, event);
+
     return event;
   }
 
@@ -120,10 +130,15 @@ export class EventsService {
     });
     if (!pairing) throw new ForbiddenException('権限がありません');
 
-    return this.prisma.event.update({
+    const resolved = await this.prisma.event.update({
       where: { id: eventId },
       data: { status: 'resolved', resolvedBy, resolvedAt: new Date() },
     });
+
+    // Emit real-time WebSocket alert resolved
+    this.alertsGateway.emitAlertResolved(event.elderlyId, eventId);
+
+    return resolved;
   }
 
   private getNotificationTitle(type: string): string {

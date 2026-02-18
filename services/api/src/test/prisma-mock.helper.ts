@@ -36,7 +36,8 @@ export type MockPrisma = {
     | 'blockedNumber'
     | 'sosSession'
     | 'sosSetting'
-    | 'refreshToken']: MockPrismaModel;
+    | 'refreshToken'
+    | 'scamStatistic']: MockPrismaModel;
 };
 
 export function createMockPrisma(): MockPrisma & PrismaService {
@@ -50,6 +51,7 @@ export function createMockPrisma(): MockPrisma & PrismaService {
     sosSession: createMockModel(),
     sosSetting: createMockModel(),
     refreshToken: createMockModel(),
+    scamStatistic: createMockModel(),
   } as any;
   return mock;
 }

@@ -5,24 +5,40 @@ import { AutoForwardService } from './auto-forward.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AiService } from '../ai/ai.service';
+import { AlertsGateway } from '../alerts/alerts.gateway';
 import { createMockPrisma } from '../test/prisma-mock.helper';
 
 describe('EventsService', () => {
   let service: EventsService;
   let prisma: ReturnType<typeof createMockPrisma>;
   let notifications: { sendToDevices: jest.Mock };
+  let alertsGateway: { emitNewAlert: jest.Mock; emitAlertResolved: jest.Mock };
+  let aiService: {
+    analyzeConversation: jest.Mock;
+    analyzeCallMetadata: jest.Mock;
+    quickCheck: jest.Mock;
+    analyzeConversationSummary: jest.Mock;
+  };
 
   beforeEach(async () => {
     prisma = createMockPrisma();
     notifications = { sendToDevices: jest.fn() };
+    alertsGateway = { emitNewAlert: jest.fn(), emitAlertResolved: jest.fn() };
+    aiService = {
+      analyzeConversation: jest.fn(),
+      analyzeCallMetadata: jest.fn(),
+      quickCheck: jest.fn(),
+      analyzeConversationSummary: jest.fn(),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         EventsService,
         { provide: PrismaService, useValue: prisma },
         { provide: NotificationsService, useValue: notifications },
-        { provide: AiService, useValue: { analyzeConversation: jest.fn(), analyzeCallMetadata: jest.fn(), quickCheck: jest.fn() } },
+        { provide: AiService, useValue: aiService },
         { provide: AutoForwardService, useValue: { processAutoForward: jest.fn().mockResolvedValue({ severity: 'medium', numberRisk: 'low', keywordsFound: [], shouldAutoBlock: false }) } },
+        { provide: AlertsGateway, useValue: alertsGateway },
       ],
     }).compile();
 
@@ -64,6 +80,34 @@ describe('EventsService', () => {
       await service.create('elderly-1', dto);
       expect(notifications.sendToDevices).not.toHaveBeenCalled();
     });
+
+    it('should emit WebSocket alert on event creation', async () => {
+      const mockEvent = { id: 'event-1', elderlyId: 'elderly-1', ...dto };
+      prisma.event.create.mockResolvedValue(mockEvent);
+      prisma.pairing.findMany.mockResolvedValue([]);
+      prisma.user.findUnique.mockResolvedValue({ name: 'おばあちゃん' });
+
+      await service.create('elderly-1', dto);
+
+      expect(alertsGateway.emitNewAlert).toHaveBeenCalledWith('elderly-1', mockEvent);
+    });
+
+    it('should trigger conversation summary AI for conversation_ai type', async () => {
+      const conversationDto = {
+        type: 'conversation_ai' as const,
+        severity: 'medium' as const,
+        payload: { conversationText: '還付金があります' },
+      };
+      const mockEvent = { id: 'event-3', elderlyId: 'elderly-1', ...conversationDto };
+      prisma.event.create.mockResolvedValue(mockEvent);
+      prisma.pairing.findMany.mockResolvedValue([]);
+      prisma.user.findUnique.mockResolvedValue({ name: 'おばあちゃん' });
+      aiService.analyzeConversationSummary.mockResolvedValue({});
+
+      await service.create('elderly-1', conversationDto);
+
+      expect(aiService.analyzeConversationSummary).toHaveBeenCalledWith('event-3', '還付金があります');
+    });
   });
 
   describe('findByElderly', () => {
@@ -92,6 +136,18 @@ describe('EventsService', () => {
 
       const result = await service.resolve('event-1', 'family-1');
       expect(result.status).toBe('resolved');
+    });
+
+    it('should emit WebSocket alert resolved on resolve', async () => {
+      prisma.event.findUnique.mockResolvedValue({
+        id: 'event-1',
+        elderlyId: 'elderly-1',
+      });
+      prisma.pairing.findFirst.mockResolvedValue({ id: 'pair-1' });
+      prisma.event.update.mockResolvedValue({ id: 'event-1', status: 'resolved' });
+
+      await service.resolve('event-1', 'family-1');
+      expect(alertsGateway.emitAlertResolved).toHaveBeenCalledWith('elderly-1', 'event-1');
     });
 
     it('should throw NotFoundException for non-existent event', async () => {

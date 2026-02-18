@@ -5,6 +5,9 @@ import { FamilyDashboardScreen } from '../screens/family/FamilyDashboardScreen';
 import { AlertListScreen } from '../screens/family/AlertListScreen';
 import { AlertDetailScreen } from '../screens/family/AlertDetailScreen';
 import { BlocklistScreen } from '../screens/family/BlocklistScreen';
+import { BlocklistAddScreen } from '../screens/family/BlocklistAddScreen';
+import { DarkJobCheckerScreen } from '../screens/family/DarkJobCheckerScreen';
+import { StatisticsScreen } from '../screens/family/StatisticsScreen';
 import { SosReceivedScreen } from '../screens/family/SosReceivedScreen';
 import { SettingsScreen } from '../screens/family/SettingsScreen';
 
@@ -23,6 +26,7 @@ export type AlertStackParamList = {
   AlertList: undefined;
   AlertDetail: { eventId: string };
   SosReceived: { sessionId: string };
+  Statistics: undefined;
 };
 
 const AlertStack = createNativeStackNavigator<AlertStackParamList>();
@@ -41,7 +45,43 @@ function AlertNavigator() {
         component={SosReceivedScreen}
         options={{ headerShown: false }}
       />
+      <AlertStack.Screen
+        name="Statistics"
+        component={StatisticsScreen}
+        options={{ title: '統計ダッシュボード' }}
+      />
     </AlertStack.Navigator>
+  );
+}
+
+// ─── Shield Stack (Blocklist + DarkJobChecker) ───
+export type ShieldStackParamList = {
+  BlocklistMain: undefined;
+  BlocklistAdd: { elderlyId: string };
+  DarkJobChecker: undefined;
+};
+
+const ShieldStack = createNativeStackNavigator<ShieldStackParamList>();
+
+function ShieldNavigator() {
+  return (
+    <ShieldStack.Navigator>
+      <ShieldStack.Screen
+        name="BlocklistMain"
+        component={BlocklistScreen}
+        options={{ title: '防御' }}
+      />
+      <ShieldStack.Screen
+        name="BlocklistAdd"
+        component={BlocklistAddScreen}
+        options={{ title: '番号追加' }}
+      />
+      <ShieldStack.Screen
+        name="DarkJobChecker"
+        component={DarkJobCheckerScreen}
+        options={{ title: '闇バイトチェッカー' }}
+      />
+    </ShieldStack.Navigator>
   );
 }
 
@@ -63,7 +103,11 @@ export function FamilyNavigator() {
         component={AlertNavigator}
         options={{ headerShown: false, title: '通知' }}
       />
-      <Tab.Screen name="Shield" component={BlocklistScreen} options={{ title: '防御' }} />
+      <Tab.Screen
+        name="Shield"
+        component={ShieldNavigator}
+        options={{ headerShown: false, title: '防御' }}
+      />
       <Tab.Screen name="Settings" component={SettingsScreen} options={{ title: '設定' }} />
     </Tab.Navigator>
   );

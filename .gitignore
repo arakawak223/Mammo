@@ -1,0 +1,58 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build
+dist/
+build/
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage/
+.nyc_output/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+*.egg-info/
+.eggs/
+
+# Terraform
+infrastructure/terraform/.terraform/
+infrastructure/terraform/*.tfstate
+infrastructure/terraform/*.tfstate.backup
+infrastructure/terraform/*.tfvars
+!infrastructure/terraform/*.tfvars.example
+
+# Mobile
+apps/mobile/android/
+apps/mobile/ios/
+*.apk
+*.aab
+*.ipa
+
+# Logs
+*.log
+npm-debug.log*
+
+# Misc
+*.tgz

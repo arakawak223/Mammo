@@ -1,0 +1,238 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── ユーザー ───
+model User {
+  id           String   @id @default(uuid())
+  phone        String   @unique
+  name         String
+  role         UserRole
+  prefecture   String?
+  deviceToken  String?  @map("device_token")
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  elderlyPairings   Pairing[]       @relation("ElderlyPairings")
+  familyPairings    Pairing[]       @relation("FamilyPairings")
+  events            Event[]         @relation("ElderlyEvents")
+  resolvedEvents    Event[]         @relation("ResolvedEvents")
+  addedBlocks       BlockedNumber[] @relation("AddedBlocks")
+  sosSessions       SosSession[]    @relation("ElderlySos")
+  resolvedSos       SosSession[]    @relation("ResolvedSos")
+  sosSettings       SosSetting[]    @relation("ElderlySosSettings")
+  sosSettingUpdates SosSetting[]    @relation("SosSettingUpdater")
+  refreshTokens     RefreshToken[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  elderly
+  family_owner
+  family_member
+
+  @@map("user_role")
+}
+
+// ─── ペアリング ───
+model Pairing {
+  id        String      @id @default(uuid())
+  elderlyId String      @map("elderly_id")
+  familyId  String      @map("family_id")
+  role      PairingRole @default(member)
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  elderly User @relation("ElderlyPairings", fields: [elderlyId], references: [id])
+  family  User @relation("FamilyPairings", fields: [familyId], references: [id])
+
+  @@unique([elderlyId, familyId])
+  @@map("pairings")
+}
+
+enum PairingRole {
+  owner
+  member
+
+  @@map("pairing_role")
+}
+
+// ─── 招待コード ───
+model InviteCode {
+  id        String    @id @default(uuid())
+  code      String    @unique
+  elderlyId String    @map("elderly_id")
+  createdBy String    @map("created_by")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@map("invite_codes")
+}
+
+// ─── イベント（アラート）───
+model Event {
+  id         String        @id @default(uuid())
+  elderlyId  String        @map("elderly_id")
+  type       EventType
+  severity   AlertSeverity
+  status     EventStatus   @default(pending)
+  payload    Json          @default("{}")
+  latitude   Float?
+  longitude  Float?
+  resolvedBy String?       @map("resolved_by")
+  resolvedAt DateTime?     @map("resolved_at")
+  createdAt  DateTime      @default(now()) @map("created_at")
+
+  elderly    User        @relation("ElderlyEvents", fields: [elderlyId], references: [id])
+  resolver   User?       @relation("ResolvedEvents", fields: [resolvedBy], references: [id])
+  aiAnalysis AiAnalysis?
+
+  @@index([elderlyId, createdAt(sort: Desc)])
+  @@map("events")
+}
+
+enum EventType {
+  scam_button
+  auto_forward
+  ai_assistant
+  realtime_alert
+  conversation_ai
+  remote_block
+  statistics
+  dark_job_check
+  emergency_sos
+
+  @@map("event_type")
+}
+
+enum AlertSeverity {
+  critical
+  high
+  medium
+  low
+
+  @@map("alert_severity")
+}
+
+enum EventStatus {
+  pending
+  acknowledged
+  resolved
+
+  @@map("event_status")
+}
+
+// ─── AI解析結果 ───
+model AiAnalysis {
+  id           String   @id @default(uuid())
+  eventId      String   @unique @map("event_id")
+  summary      String
+  riskScore    Int      @map("risk_score")
+  scamType     String   @map("scam_type")
+  rawText      String?  @map("raw_text")
+  modelVersion String   @map("model_version")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  event Event @relation(fields: [eventId], references: [id])
+
+  @@map("ai_analyses")
+}
+
+// ─── 着信拒否リスト ───
+model BlockedNumber {
+  id          String   @id @default(uuid())
+  elderlyId   String   @map("elderly_id")
+  phoneNumber String   @map("phone_number")
+  addedBy     String   @map("added_by")
+  reason      String?
+  source      String   @default("manual")
+  synced      Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  adder User @relation("AddedBlocks", fields: [addedBy], references: [id])
+
+  @@unique([elderlyId, phoneNumber])
+  @@map("blocked_numbers")
+}
+
+// ─── 緊急SOSセッション ───
+model SosSession {
+  id         String           @id @default(uuid())
+  elderlyId  String           @map("elderly_id")
+  mode       SosMode          @default(silent)
+  status     SosSessionStatus @default(active)
+  locations  Json             @default("[]")
+  audioUrl   String?          @map("audio_url")
+  resolvedBy String?          @map("resolved_by")
+  startedAt  DateTime         @default(now()) @map("started_at")
+  endedAt    DateTime?        @map("ended_at")
+
+  elderly  User  @relation("ElderlySos", fields: [elderlyId], references: [id])
+  resolver User? @relation("ResolvedSos", fields: [resolvedBy], references: [id])
+
+  @@index([elderlyId, startedAt(sort: Desc)])
+  @@map("sos_sessions")
+}
+
+enum SosMode {
+  alarm
+  silent
+
+  @@map("sos_mode")
+}
+
+enum SosSessionStatus {
+  active
+  resolved
+
+  @@map("sos_session_status")
+}
+
+// ─── SOSモード設定 ───
+model SosSetting {
+  id          String   @id @default(uuid())
+  elderlyId   String   @unique @map("elderly_id")
+  defaultMode SosMode  @default(silent) @map("default_mode")
+  updatedBy   String   @map("updated_by")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  elderly User @relation("ElderlySosSettings", fields: [elderlyId], references: [id])
+  updater User @relation("SosSettingUpdater", fields: [updatedBy], references: [id])
+
+  @@map("sos_settings")
+}
+
+// ─── 詐欺統計データ ───
+model ScamStatistic {
+  id         String   @id @default(uuid())
+  prefecture String
+  yearMonth  String   @map("year_month")
+  scamType   String   @map("scam_type")
+  amount     BigInt   @default(0)
+  count      Int      @default(0)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@unique([prefecture, yearMonth, scamType])
+  @@map("scam_statistics")
+}
+
+// ─── リフレッシュトークン ───
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}

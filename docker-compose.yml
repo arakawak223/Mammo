@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: mamori
+      POSTGRES_PASSWORD: mamori_dev
+      POSTGRES_DB: mamori_talk
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U mamori']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./services/api
+      dockerfile: Dockerfile
+    ports:
+      - '3000:3000'
+    environment:
+      DATABASE_URL: postgresql://mamori:mamori_dev@postgres:5432/mamori_talk
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: dev-jwt-secret-change-in-production
+      NODE_ENV: development
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./services/api/src:/app/src
+
+  ai:
+    build:
+      context: ./services/ai
+      dockerfile: Dockerfile
+    ports:
+      - '8000:8000'
+    environment:
+      ENVIRONMENT: development
+    volumes:
+      - ./services/ai/app:/app/app
+
+volumes:
+  postgres_data:
+  redis_data:

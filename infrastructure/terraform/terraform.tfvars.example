@@ -1,0 +1,17 @@
+aws_region  = "ap-northeast-1"
+environment = "dev"
+
+# Database
+db_instance_class = "db.t3.micro"
+db_name           = "mamori_talk"
+db_username       = "mamori"
+db_password       = "CHANGE_ME_IN_PRODUCTION"
+
+# Redis
+redis_node_type = "cache.t3.micro"
+
+# ECS (dev settings)
+api_cpu    = 256
+api_memory = 512
+ai_cpu     = 512
+ai_memory  = 1024

@@ -10,11 +10,13 @@ checker = DarkJobChecker()
 
 
 class DarkJobCheckRequest(BaseModel):
+    model_config = {"json_schema_extra": {"title": "闇バイトチェックリクエスト"}}
     text: str = Field(..., min_length=1, description="チェック対象のメッセージまたは求人テキスト")
     source: str | None = Field(None, description="テキストの出典（sms, sns など）")
 
 
 class DarkJobCheckResponse(BaseModel):
+    model_config = {"json_schema_extra": {"title": "闇バイトチェックレスポンス"}}
     is_dark_job: bool = Field(..., description="闇バイトの疑いがあるか")
     risk_level: str = Field(..., description="リスクレベル（high / medium / low）")
     risk_score: int = Field(..., ge=0, le=100, description="リスクスコア（0〜100）")
@@ -28,6 +30,10 @@ class DarkJobCheckResponse(BaseModel):
     response_model=DarkJobCheckResponse,
     summary="闇バイトチェック",
     description="メッセージや求人投稿が闇バイト（犯罪的アルバイト）の勧誘かどうかを判定します。",
+    responses={
+        200: {"description": "チェック成功"},
+        422: {"description": "入力値バリデーションエラー"},
+    },
 )
 async def check_dark_job(request: DarkJobCheckRequest):
     """メッセージや求人投稿が闇バイトの勧誘かどうかを判定します。"""

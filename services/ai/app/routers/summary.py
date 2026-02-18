@@ -29,10 +29,12 @@ RECOMMENDED_ACTIONS_BY_RISK = {
 
 
 class ConversationSummaryRequest(BaseModel):
+    model_config = {"json_schema_extra": {"title": "会話サマリーリクエスト"}}
     text: str = Field(..., min_length=1, description="要約対象の会話テキスト")
 
 
 class ConversationSummaryResponse(BaseModel):
+    model_config = {"json_schema_extra": {"title": "会話サマリーレスポンス"}}
     risk_score: int = Field(..., ge=0, le=100, description="リスクスコア（0〜100）")
     scam_type: str = Field(..., description="検出された詐欺タイプ")
     summary: str = Field(..., description="会話内容の要約")
@@ -70,6 +72,10 @@ def extract_key_points(text: str) -> list[str]:
     response_model=ConversationSummaryResponse,
     summary="会話サマリー解析",
     description="高齢者から報告された通話内容を要約し、リスク評価・重要ポイント・推奨アクションを返します。",
+    responses={
+        200: {"description": "解析成功"},
+        422: {"description": "入力値バリデーションエラー"},
+    },
 )
 async def analyze_conversation_summary(request: ConversationSummaryRequest):
     """高齢者から報告された通話内容を要約し、リスク評価と推奨アクションを返します。"""

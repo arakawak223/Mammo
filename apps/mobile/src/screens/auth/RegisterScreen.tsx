@@ -31,8 +31,12 @@ export function RegisterScreen({ navigation }: any) {
       return;
     }
 
-    if (password.length < 6) {
-      Alert.alert('入力エラー', 'パスワードは6文字以上にしてください');
+    if (password.length < 8) {
+      Alert.alert('入力エラー', 'パスワードは8文字以上で入力してください');
+      return;
+    }
+    if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
+      Alert.alert('入力エラー', 'パスワードに英大文字・小文字・数字を各1文字以上含めてください');
       return;
     }
 
@@ -112,7 +116,7 @@ export function RegisterScreen({ navigation }: any) {
           <Text style={styles.label}>パスワード</Text>
           <TextInput
             style={styles.input}
-            placeholder="6文字以上"
+            placeholder="8文字以上（英大小文字+数字）"
             value={password}
             onChangeText={setPassword}
             secureTextEntry

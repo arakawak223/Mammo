@@ -24,6 +24,7 @@ export function VoiceAssistantScreen({ navigation }: any) {
     scamType: string;
     summary: string;
   } | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   // Pulse animation for recording
@@ -54,6 +55,7 @@ export function VoiceAssistantScreen({ navigation }: any) {
     setPartialText('');
     setTranscript('');
     setAiResult(null);
+    setError(null);
     setState('listening');
 
     speechRecognizer.onPartialResult?.((text) => {
@@ -78,6 +80,7 @@ export function VoiceAssistantScreen({ navigation }: any) {
       });
       setState('result');
     } catch {
+      setError('音声の解析に失敗しました。もう一度お試しください。');
       setState('idle');
     }
   }, []);
@@ -93,12 +96,19 @@ export function VoiceAssistantScreen({ navigation }: any) {
     setPartialText('');
     setTranscript('');
     setAiResult(null);
+    setError(null);
   }, []);
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>AI音声チェック</Text>
+
+        {state === 'idle' && error && (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
 
         {state === 'idle' && (
           <>
@@ -181,6 +191,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     alignSelf: 'flex-start',
   },
+  errorBanner: { backgroundColor: '#FEE2E2', borderRadius: 8, padding: 12, marginBottom: 12, width: '100%' },
+  errorText: { fontSize: 16, color: '#DC2626', textAlign: 'center' },
   instruction: {
     fontSize: ELDERLY_UI.MIN_FONT_SIZE,
     color: COLORS.subText,

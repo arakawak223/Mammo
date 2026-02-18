@@ -27,6 +27,7 @@ export function BlocklistScreen({ navigation }: any) {
   const [items, setItems] = useState<BlockedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const user = useAuthStore((s) => s.user);
 
   // For family users, elderlyId comes from pairings; simplified: use first pairing
@@ -40,7 +41,7 @@ export function BlocklistScreen({ navigation }: any) {
           setElderlyId(pairings[0].elderlyId);
         }
       } catch {
-        // ignore
+        setError('ペアリング情報の取得に失敗しました');
       }
     })();
   }, []);
@@ -153,6 +154,12 @@ export function BlocklistScreen({ navigation }: any) {
         </View>
       </View>
 
+      {error && (
+        <View style={styles.errorBanner}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      )}
+
       {loading ? (
         <ActivityIndicator size="large" color={COLORS.primary} style={styles.loader} />
       ) : items.length === 0 ? (
@@ -227,6 +234,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   deleteText: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
+  errorBanner: { backgroundColor: '#FEE2E2', borderRadius: 8, padding: 12, marginHorizontal: 16, marginTop: 12 },
+  errorText: { fontSize: 14, color: '#DC2626', textAlign: 'center' },
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   emptyText: { fontSize: 18, color: COLORS.subText, textAlign: 'center' },
   emptySubText: { fontSize: 14, color: COLORS.subText, marginTop: 8 },

@@ -32,7 +32,7 @@ describe('AuthService', () => {
         AuthService,
         { provide: PrismaService, useValue: prisma },
         { provide: JwtService, useValue: jwtService },
-        { provide: ConfigService, useValue: { get: jest.fn() } },
+        { provide: ConfigService, useValue: { get: jest.fn().mockReturnValue('15m') } },
         { provide: RedisCacheService, useValue: cacheService },
       ],
     }).compile();

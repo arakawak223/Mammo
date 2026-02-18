@@ -13,6 +13,7 @@ interface Pairing {
 export function SettingsScreen({ navigation }: any) {
   const { user, logout } = useAuthStore();
   const [pairings, setPairings] = useState<Pairing[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -20,7 +21,7 @@ export function SettingsScreen({ navigation }: any) {
         const data: any = await api.getPairings();
         setPairings(data);
       } catch {
-        // silent
+        setError('ペアリング情報の取得に失敗しました');
       }
     })();
   }, []);
@@ -54,6 +55,11 @@ export function SettingsScreen({ navigation }: any) {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>見守り対象</Text>
+        {error && (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
         {pairings.length > 0 ? (
           <View style={styles.card}>
             {pairings.map((p) => (
@@ -106,6 +112,8 @@ const styles = StyleSheet.create({
   pairingPhone: { fontSize: 14, color: COLORS.subText },
   pairingRole: { fontSize: 13, color: COLORS.primary, fontWeight: '500' },
   emptyText: { fontSize: 15, color: COLORS.subText, textAlign: 'center' },
+  errorBanner: { backgroundColor: '#FEE2E2', borderRadius: 8, padding: 12, marginBottom: 12 },
+  errorText: { fontSize: 14, color: '#DC2626', textAlign: 'center' },
   addButton: {
     borderWidth: 2,
     borderColor: COLORS.primary,

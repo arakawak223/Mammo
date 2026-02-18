@@ -1,4 +1,4 @@
-"""Conversation summary analysis endpoint (F5)."""
+"""会話サマリー解析エンドポイント（F5）"""
 
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
@@ -8,7 +8,7 @@ from app.services.scam_analyzer import ScamAnalyzer
 router = APIRouter()
 analyzer = ScamAnalyzer()
 
-# Recommended actions based on risk level
+# リスクレベル別の推奨アクション
 RECOMMENDED_ACTIONS_BY_RISK = {
     "high": [
         "すぐに電話を切ってください",
@@ -29,47 +29,50 @@ RECOMMENDED_ACTIONS_BY_RISK = {
 
 
 class ConversationSummaryRequest(BaseModel):
-    text: str = Field(..., min_length=1, description="Conversation text to summarize")
+    text: str = Field(..., min_length=1, description="要約対象の会話テキスト")
 
 
 class ConversationSummaryResponse(BaseModel):
-    risk_score: int = Field(..., ge=0, le=100)
-    scam_type: str
-    summary: str
-    key_points: list[str]
-    recommended_actions: list[str]
-    keywords_found: list[str]
-    model_version: str
+    risk_score: int = Field(..., ge=0, le=100, description="リスクスコア（0〜100）")
+    scam_type: str = Field(..., description="検出された詐欺タイプ")
+    summary: str = Field(..., description="会話内容の要約")
+    key_points: list[str] = Field(..., description="会話の重要ポイント")
+    recommended_actions: list[str] = Field(..., description="推奨アクション一覧")
+    keywords_found: list[str] = Field(..., description="検出されたキーワード一覧")
+    model_version: str = Field(..., description="使用モデルのバージョン")
 
 
 def extract_key_points(text: str) -> list[str]:
-    """Extract key points from conversation text."""
+    """会話テキストから重要ポイントを抽出する。"""
     points = []
     sentences = [s.strip() for s in text.replace("。", "。\n").split("\n") if s.strip()]
 
-    # Pick important sentences (those containing key indicators)
     important_markers = [
         "お金", "振り込", "送金", "口座", "カード", "暗証番号",
         "今すぐ", "急いで", "警察", "役所", "銀行",
         "息子", "娘", "孫", "事故", "病院",
     ]
 
-    for sentence in sentences[:10]:  # Limit to first 10 sentences
+    for sentence in sentences[:10]:
         for marker in important_markers:
             if marker in sentence:
                 points.append(sentence[:80])
                 break
 
     if not points and sentences:
-        # If no important markers found, just take first few sentences
         points = [s[:80] for s in sentences[:3]]
 
-    return points[:5]  # Max 5 key points
+    return points[:5]
 
 
-@router.post("/analyze/conversation-summary", response_model=ConversationSummaryResponse)
+@router.post(
+    "/analyze/conversation-summary",
+    response_model=ConversationSummaryResponse,
+    summary="会話サマリー解析",
+    description="高齢者から報告された通話内容を要約し、リスク評価・重要ポイント・推奨アクションを返します。",
+)
 async def analyze_conversation_summary(request: ConversationSummaryRequest):
-    """Analyze and summarize a conversation report from elderly user."""
+    """高齢者から報告された通話内容を要約し、リスク評価と推奨アクションを返します。"""
     result = analyzer.analyze(request.text)
 
     risk_score = result["risk_score"]

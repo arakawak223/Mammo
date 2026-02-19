@@ -42,30 +42,65 @@ interface StatEntry {
   count?: number;
 }
 
+interface TrendMonth {
+  yearMonth: string;
+  totalAmount: number;
+  totalCount: number;
+  changeRate: number | null;
+}
+
+interface TrendData {
+  months: TrendMonth[];
+  byScamType: { scamType: string; months: TrendMonth[] }[];
+}
+
+interface AdviceData {
+  prefecture: string;
+  advices: { scamType: string; label: string; advice: string; count: number; amount: number }[];
+  generatedAt: string;
+}
+
 export function StatisticsScreen({ navigation }: any) {
   const [selectedPrefecture, setSelectedPrefecture] = useState('全国');
   const [showPrefPicker, setShowPrefPicker] = useState(false);
   const [data, setData] = useState<StatEntry[]>([]);
   const [topPrefectures, setTopPrefectures] = useState<StatEntry[]>([]);
+  const [trendData, setTrendData] = useState<TrendData | null>(null);
+  const [adviceData, setAdviceData] = useState<AdviceData | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
+      const prefParam = selectedPrefecture === '全国' ? undefined : selectedPrefecture;
+
+      const promises: Promise<any>[] = [
+        api.getStatisticsTrend({ prefecture: prefParam, months: 6 }),
+      ];
+
       if (selectedPrefecture === '全国') {
-        const [top, national]: any = await Promise.all([
-          api.getTopPrefectures(10),
-          api.getStatisticsNational(),
-        ]);
-        setTopPrefectures(top);
-        setData(national);
+        promises.push(api.getTopPrefectures(10));
+        promises.push(api.getStatisticsNational());
       } else {
-        const stats: any = await api.getStatistics({ prefecture: selectedPrefecture });
-        setData(stats);
+        promises.push(api.getStatistics({ prefecture: selectedPrefecture }));
+        promises.push(api.getRegionalAdvice(selectedPrefecture));
+      }
+
+      const results = await Promise.all(promises.map(p => p.catch(() => null)));
+
+      setTrendData(results[0] as TrendData);
+
+      if (selectedPrefecture === '全国') {
+        setTopPrefectures(results[1] || []);
+        setData(results[2] || []);
+        setAdviceData(null);
+      } else {
+        setData(results[1] || []);
         setTopPrefectures([]);
+        setAdviceData(results[2] as AdviceData);
       }
     } catch {
-      // ignore errors for stats display
+      // ignore
     } finally {
       setLoading(false);
     }
@@ -77,6 +112,11 @@ export function StatisticsScreen({ navigation }: any) {
 
   const maxAmount = Math.max(
     ...topPrefectures.map((d) => d.totalAmount || 0),
+    1,
+  );
+
+  const trendMaxAmount = Math.max(
+    ...(trendData?.months.map(m => m.totalAmount) || [1]),
     1,
   );
 
@@ -124,6 +164,115 @@ export function StatisticsScreen({ navigation }: any) {
           <ActivityIndicator size="large" color={COLORS.primary} style={styles.loader} />
         ) : (
           <>
+            {/* Trend Section */}
+            {trendData && trendData.months.length > 0 && (
+              <View style={styles.chartSection}>
+                <Text style={styles.sectionTitle}>月次推移（直近6ヶ月）</Text>
+                {trendData.months.map((month) => {
+                  const barWidth = trendMaxAmount > 0
+                    ? (month.totalAmount / trendMaxAmount) * 100
+                    : 0;
+                  const changeRate = month.changeRate;
+                  return (
+                    <View key={month.yearMonth} style={styles.trendRow}>
+                      <Text style={styles.trendLabel}>{month.yearMonth}</Text>
+                      <View style={styles.barContainer}>
+                        <View
+                          style={[
+                            styles.bar,
+                            {
+                              width: `${barWidth}%`,
+                              backgroundColor: '#1565C0',
+                            },
+                          ]}
+                        />
+                      </View>
+                      <View style={styles.trendRight}>
+                        <Text style={styles.trendAmount}>
+                          {(month.totalAmount / 10000).toFixed(0)}万
+                        </Text>
+                        {changeRate !== null && (
+                          <Text
+                            style={[
+                              styles.changeRate,
+                              { color: changeRate > 0 ? '#C62828' : changeRate < 0 ? '#2E7D32' : COLORS.subText },
+                            ]}
+                          >
+                            {changeRate > 0 ? '↑' : changeRate < 0 ? '↓' : '→'}
+                            {Math.abs(changeRate).toFixed(0)}%
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                  );
+                })}
+                <Text style={styles.trendCaption}>
+                  件数: {trendData.months.reduce((s, m) => s + m.totalCount, 0)}件（期間合計）
+                </Text>
+              </View>
+            )}
+
+            {/* Scam Type Composition */}
+            {trendData && trendData.byScamType.length > 0 && (
+              <View style={styles.chartSection}>
+                <Text style={styles.sectionTitle}>手口別構成比</Text>
+                {(() => {
+                  const totals = trendData.byScamType.map(st => ({
+                    scamType: st.scamType,
+                    total: st.months.reduce((s, m) => s + m.totalAmount, 0),
+                  }));
+                  const grandTotal = totals.reduce((s, t) => s + t.total, 0) || 1;
+                  const sorted = totals.sort((a, b) => b.total - a.total);
+                  return sorted.map((item, i) => {
+                    const pct = (item.total / grandTotal) * 100;
+                    return (
+                      <View key={item.scamType} style={styles.compositionRow}>
+                        <Text style={styles.compositionLabel}>
+                          {SCAM_TYPE_LABELS[item.scamType] || item.scamType}
+                        </Text>
+                        <View style={styles.compositionBarBg}>
+                          <View
+                            style={[
+                              styles.compositionBar,
+                              {
+                                width: `${pct}%`,
+                                backgroundColor: BAR_COLORS[i % BAR_COLORS.length],
+                              },
+                            ]}
+                          />
+                        </View>
+                        <Text style={styles.compositionPct}>{pct.toFixed(0)}%</Text>
+                      </View>
+                    );
+                  });
+                })()}
+              </View>
+            )}
+
+            {/* Regional Advice Card */}
+            {adviceData && adviceData.advices.length > 0 && (
+              <View style={styles.adviceCard}>
+                <Text style={styles.adviceTitleText}>
+                  {adviceData.prefecture}の注意手口
+                </Text>
+                {adviceData.advices.map((a, i) => (
+                  <View key={i} style={styles.adviceItem}>
+                    <View style={styles.adviceHeader}>
+                      <View style={[styles.adviceBadge, { backgroundColor: BAR_COLORS[i % BAR_COLORS.length] + '20' }]}>
+                        <Text style={[styles.adviceBadgeText, { color: BAR_COLORS[i % BAR_COLORS.length] }]}>
+                          {a.label}
+                        </Text>
+                      </View>
+                      <Text style={styles.adviceStats}>
+                        {a.count}件 / {(Number(a.amount) / 10000).toFixed(0)}万円
+                      </Text>
+                    </View>
+                    <Text style={styles.adviceText}>{a.advice}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
             {/* Top Prefectures Bar Chart */}
             {topPrefectures.length > 0 && (
               <View style={styles.chartSection}>
@@ -181,7 +330,7 @@ export function StatisticsScreen({ navigation }: any) {
               </View>
             )}
 
-            {data.length === 0 && topPrefectures.length === 0 && (
+            {data.length === 0 && topPrefectures.length === 0 && !trendData && (
               <View style={styles.emptyContainer}>
                 <Text style={styles.emptyText}>統計データがありません</Text>
               </View>
@@ -227,6 +376,60 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     marginBottom: 12,
   },
+  // Trend
+  trendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  trendLabel: { width: 60, fontSize: 11, color: COLORS.subText },
+  trendRight: { width: 80, alignItems: 'flex-end', paddingLeft: 4 },
+  trendAmount: { fontSize: 12, color: COLORS.text, fontWeight: '600' },
+  changeRate: { fontSize: 11, fontWeight: '700', marginTop: 1 },
+  trendCaption: { fontSize: 12, color: COLORS.subText, marginTop: 4 },
+  // Composition
+  compositionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  compositionLabel: { width: 70, fontSize: 12, color: COLORS.text },
+  compositionBarBg: {
+    flex: 1,
+    height: 16,
+    backgroundColor: '#EEEEEE',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  compositionBar: { height: '100%', borderRadius: 4 },
+  compositionPct: { width: 40, fontSize: 12, color: COLORS.subText, textAlign: 'right' },
+  // Advice Card
+  adviceCard: {
+    marginTop: 20,
+    backgroundColor: '#FFF8E1',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#FFE082',
+  },
+  adviceTitleText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#E65100',
+    marginBottom: 12,
+  },
+  adviceItem: { marginBottom: 12 },
+  adviceHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  adviceBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
+  adviceBadgeText: { fontSize: 12, fontWeight: '600' },
+  adviceStats: { fontSize: 11, color: COLORS.subText },
+  adviceText: { fontSize: 13, color: COLORS.text, lineHeight: 20 },
+  // Bar chart
   barRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -242,6 +445,7 @@ const styles = StyleSheet.create({
   },
   bar: { height: '100%', borderRadius: 4 },
   barValue: { width: 70, fontSize: 12, color: COLORS.subText, textAlign: 'right' },
+  // Table
   tableHeader: {
     flexDirection: 'row',
     borderBottomWidth: 1,

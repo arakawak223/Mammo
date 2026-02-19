@@ -1,6 +1,6 @@
-import { Controller, Post, Body, UseGuards, Req } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards, Req, Query } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiProperty, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiProperty, ApiPropertyOptional, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { IsString, IsOptional } from 'class-validator';
 import { AiService } from './ai.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -10,7 +10,18 @@ class DarkJobCheckDto {
   @IsString()
   text: string;
 
-  @ApiProperty({ required: false, description: 'テキストの出典（sms, sns など）' })
+  @ApiPropertyOptional({ description: 'テキストの出典（sms, sns など）' })
+  @IsOptional()
+  @IsString()
+  source?: string;
+}
+
+class DarkJobImageCheckDto {
+  @ApiProperty({ description: 'Base64エンコードされた画像データ' })
+  @IsString()
+  imageBase64: string;
+
+  @ApiPropertyOptional({ description: '画像の出典（screenshot, photo など）' })
   @IsOptional()
   @IsString()
   source?: string;
@@ -44,12 +55,58 @@ export class AiController {
   })
   @ApiResponse({ status: 201, description: '判定結果（リスクレベル・スコア・理由・相談先情報）' })
   @ApiResponse({ status: 429, description: 'レート制限超過（10回/分）' })
-  async checkDarkJob(@Body() dto: DarkJobCheckDto) {
+  async checkDarkJob(@Req() req: any, @Body() dto: DarkJobCheckDto) {
+    const userId = req.user.id;
     const result = await this.aiService.checkDarkJob(dto.text, dto.source);
+
+    // 履歴保存
+    await this.aiService.saveDarkJobCheck(userId, dto.text, 'text', result);
+
     return {
       ...result,
       consultationContacts: CONSULTATION_CONTACTS,
     };
+  }
+
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
+  @Post('dark-job-check-image')
+  @ApiOperation({
+    summary: '闇バイト画像チェッカー（OCR付き）',
+    description: 'スクリーンショットや写真からOCRでテキストを抽出し、闇バイト判定を実行します。',
+  })
+  @ApiResponse({ status: 201, description: '判定結果（OCR抽出テキスト付き）' })
+  @ApiResponse({ status: 429, description: 'レート制限超過（5回/分）' })
+  async checkDarkJobImage(@Req() req: any, @Body() dto: DarkJobImageCheckDto) {
+    const userId = req.user.id;
+    const result = await this.aiService.checkDarkJobImage(
+      dto.imageBase64,
+      dto.source,
+    );
+
+    // 履歴保存
+    await this.aiService.saveDarkJobCheck(
+      userId,
+      result.extractedText || '(画像入力)',
+      'image',
+      result,
+    );
+
+    return {
+      ...result,
+      consultationContacts: CONSULTATION_CONTACTS,
+    };
+  }
+
+  @Get('dark-job-history')
+  @ApiOperation({
+    summary: '闇バイトチェック履歴',
+    description: 'ユーザーの闇バイトチェック履歴を取得します（直近20件）。',
+  })
+  @ApiQuery({ name: 'limit', required: false, description: '取得件数（デフォルト: 20）' })
+  @ApiResponse({ status: 200, description: 'チェック履歴一覧' })
+  async getDarkJobHistory(@Req() req: any, @Query('limit') limit?: string) {
+    const userId = req.user.id;
+    return this.aiService.getDarkJobHistory(userId, limit ? parseInt(limit, 10) : 20);
   }
 
   @Throttle({ default: { ttl: 60000, limit: 5 } })

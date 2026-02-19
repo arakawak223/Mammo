@@ -133,4 +133,83 @@ describe('StatisticsService', () => {
       expect(result[0].count).toBe(18);
     });
   });
+
+  describe('getTrend', () => {
+    it('should return monthly trend with changeRate', async () => {
+      const mockStats = [
+        { prefecture: '東京都', yearMonth: '2026-01', scamType: 'ore_ore', amount: BigInt(1000000), count: 5 },
+        { prefecture: '東京都', yearMonth: '2026-02', scamType: 'ore_ore', amount: BigInt(1500000), count: 8 },
+      ];
+      prisma.scamStatistic.findMany.mockResolvedValue(mockStats);
+
+      const result = await service.getTrend('東京都', 6);
+
+      expect(result.months).toHaveLength(2);
+      expect(result.months[0].yearMonth).toBe('2026-01');
+      expect(result.months[0].changeRate).toBeNull();
+      expect(result.months[1].yearMonth).toBe('2026-02');
+      expect(result.months[1].changeRate).toBe(50);
+      expect(result.byScamType).toHaveLength(1);
+    });
+
+    it('should return empty result when no data', async () => {
+      prisma.scamStatistic.findMany.mockResolvedValue([]);
+
+      const result = await service.getTrend(undefined, 6);
+
+      expect(result.months).toHaveLength(0);
+      expect(result.byScamType).toHaveLength(0);
+    });
+  });
+
+  describe('getAdvice', () => {
+    it('should return advice for a prefecture with data', async () => {
+      const mockStats = [
+        { prefecture: '東京都', yearMonth: '2026-02', scamType: 'ore_ore', amount: BigInt(5000000), count: 10 },
+        { prefecture: '東京都', yearMonth: '2026-02', scamType: 'refund_fraud', amount: BigInt(2000000), count: 5 },
+      ];
+      prisma.scamStatistic.findMany.mockResolvedValue(mockStats);
+
+      const result = await service.getAdvice('東京都');
+
+      expect(result.prefecture).toBe('東京都');
+      expect(result.topScamTypes).toHaveLength(2);
+      expect(result.topScamTypes[0].scamType).toBe('ore_ore');
+      expect(result.advice).toContain('東京都');
+    });
+
+    it('should return no-data message when no stats', async () => {
+      prisma.scamStatistic.findMany.mockResolvedValue([]);
+
+      const result = await service.getAdvice('沖縄県');
+
+      expect(result.prefecture).toBe('沖縄県');
+      expect(result.advice).toContain('統計データがありません');
+    });
+  });
+
+  describe('bulkImport', () => {
+    it('should upsert all records and invalidate cache', async () => {
+      const records = [
+        { prefecture: '東京都', yearMonth: '2026-02', scamType: 'ore_ore', amount: 1000000, count: 5 },
+        { prefecture: '大阪府', yearMonth: '2026-02', scamType: 'ore_ore', amount: 500000, count: 3 },
+      ];
+      prisma.scamStatistic.upsert.mockResolvedValue({});
+
+      const result = await service.bulkImport(records);
+
+      expect(result.imported).toBe(2);
+      expect(result.total).toBe(2);
+      expect(prisma.scamStatistic.upsert).toHaveBeenCalledTimes(2);
+      expect(mockCache.delByPattern).toHaveBeenCalledWith('stats:*');
+    });
+
+    it('should throw on invalid prefecture name', async () => {
+      const records = [
+        { prefecture: '存在しない県', yearMonth: '2026-02', scamType: 'ore_ore', amount: 100, count: 1 },
+      ];
+
+      await expect(service.bulkImport(records)).rejects.toThrow('無効な都道府県名');
+    });
+  });
 });

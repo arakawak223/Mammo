@@ -16,7 +16,7 @@ from starlette.responses import HTMLResponse
 
 from app.config import get_settings
 from app.logging_config import setup_logging
-from app.routers import conversation, dark_job, health, metadata, summary
+from app.routers import advice, conversation, dark_job, health, metadata, summary
 
 # 設定読み込み（起動時にバリデーション実行）
 settings = get_settings()
@@ -204,6 +204,7 @@ app.include_router(conversation.router, prefix="/api/v1", tags=["会話解析"])
 app.include_router(dark_job.router, prefix="/api/v1", tags=["闇バイトチェック"])
 app.include_router(metadata.router, prefix="/api/v1", tags=["着信メタデータ解析"])
 app.include_router(summary.router, prefix="/api/v1", tags=["会話サマリー"])
+app.include_router(advice.router, prefix="/api/v1", tags=["地域別アドバイス"])
 
 
 # WP-6: Prometheusメトリクスエンドポイント
@@ -224,6 +225,10 @@ SCHEMA_RENAMES = {
     "MetadataResponse": "メタデータ解析レスポンス",
     "QuickCheckRequest": "クイックチェックリクエスト",
     "QuickCheckResponse": "クイックチェックレスポンス",
+    "RegionalAdviceRequest": "地域別アドバイスリクエスト",
+    "RegionalAdviceResponse": "地域別アドバイスレスポンス",
+    "DarkJobImageCheckRequest": "闇バイト画像チェックリクエスト",
+    "DarkJobImageCheckResponse": "闇バイト画像チェックレスポンス",
     "HTTPValidationError": "HTTPバリデーションエラー",
     "ValidationError": "バリデーションエラー詳細",
 }

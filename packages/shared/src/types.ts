@@ -171,3 +171,37 @@ export interface WsAlertNotification {
   type: 'new_alert';
   event: EventResponse;
 }
+
+// ─── Trend (F7) ───
+export interface TrendMonth {
+  yearMonth: string;
+  totalAmount: number;
+  totalCount: number;
+  changeRate: number | null;
+}
+
+export interface TrendResponse {
+  months: TrendMonth[];
+  byScamType: { scamType: string; months: TrendMonth[] }[];
+}
+
+// ─── Regional Advice (F7) ───
+export interface RegionalAdviceResponse {
+  prefecture: string;
+  yearMonth?: string;
+  advice: string;
+  topScamTypes: { scamType: string; amount: number; count: number }[];
+}
+
+// ─── Dark Job Check History (F8) ───
+export interface DarkJobCheckHistoryItem {
+  id: string;
+  inputText: string;
+  inputType: 'text' | 'image';
+  riskLevel: string;
+  riskScore: number;
+  result: Record<string, unknown>;
+  createdAt: string;
+}
+
+export type DarkJobCheckHistoryResponse = DarkJobCheckHistoryItem[];

@@ -212,6 +212,75 @@ export class AiService {
     }
   }
 
+  async checkDarkJobImage(imageBase64: string, source?: string): Promise<any> {
+    try {
+      const data = await this.callAi<any>(
+        `${this.aiBaseUrl}/api/v1/check/dark-job-image`,
+        { image_base64: imageBase64, source },
+        5000,
+      );
+      return {
+        isDarkJob: data.is_dark_job,
+        riskLevel: data.risk_level,
+        riskScore: data.risk_score,
+        keywordsFound: data.keywords_found,
+        explanation: data.explanation,
+        modelVersion: data.model_version,
+        extractedText: data.extracted_text || '',
+      };
+    } catch (error) {
+      this.logger.error('Dark job image check failed', error);
+      return {
+        isDarkJob: false,
+        riskLevel: 'low',
+        riskScore: 0,
+        keywordsFound: [],
+        explanation: '画像チェックに失敗しました。テキスト入力をお試しください。',
+        modelVersion: 'error',
+        extractedText: '',
+      };
+    }
+  }
+
+  async saveDarkJobCheck(
+    userId: string,
+    inputText: string,
+    inputType: string,
+    result: any,
+  ): Promise<void> {
+    try {
+      await this.prisma.darkJobCheck.create({
+        data: {
+          userId,
+          inputText: inputText.substring(0, 2000),
+          inputType,
+          riskLevel: result.riskLevel || 'low',
+          riskScore: result.riskScore || 0,
+          result: result as any,
+        },
+      });
+    } catch (error) {
+      this.logger.error('Failed to save dark job check history', error);
+    }
+  }
+
+  async getDarkJobHistory(userId: string, limit = 20): Promise<any[]> {
+    const records = await this.prisma.darkJobCheck.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+    return records.map((r) => ({
+      id: r.id,
+      inputText: r.inputText,
+      inputType: r.inputType,
+      riskLevel: r.riskLevel,
+      riskScore: r.riskScore,
+      result: r.result,
+      createdAt: r.createdAt,
+    }));
+  }
+
   async voiceAnalyze(userId: string, transcript: string): Promise<any> {
     const event = await this.prisma.event.create({
       data: {

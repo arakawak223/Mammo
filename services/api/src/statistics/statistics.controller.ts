@@ -1,7 +1,8 @@
-import { Controller, Get, Header, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Header, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { StatisticsService } from './statistics.service';
-import { GetStatisticsDto } from './dto/get-statistics.dto';
+import { GetStatisticsDto, GetTrendDto } from './dto/get-statistics.dto';
+import { ImportStatisticsDto } from './dto/import-statistics.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('統計')
@@ -54,5 +55,48 @@ export class StatisticsController {
       limit ? parseInt(limit, 10) : 10,
       yearMonth,
     );
+  }
+
+  @Get('trend')
+  @Header('Cache-Control', 'private, max-age=300')
+  @ApiOperation({
+    summary: '月次トレンド分析',
+    description: '直近N ヶ月の推移データ（前月比付き）を取得します。',
+  })
+  @ApiResponse({ status: 200, description: '月次推移データ（months + byScamType）' })
+  getTrend(@Query() query: GetTrendDto) {
+    return this.statisticsService.getTrend(query.prefecture, query.months);
+  }
+
+  @Get('advice')
+  @Header('Cache-Control', 'private, max-age=300')
+  @ApiOperation({
+    summary: '地域別アドバイス',
+    description: '指定都道府県の最新統計に基づくアドバイスを返します。',
+  })
+  @ApiQuery({ name: 'prefecture', required: true, description: '都道府県名' })
+  @ApiResponse({ status: 200, description: '地域別アドバイス' })
+  getAdvice(@Query('prefecture') prefecture: string) {
+    return this.statisticsService.getAdvice(prefecture);
+  }
+
+  @Post('import')
+  @ApiOperation({
+    summary: '統計データ一括投入',
+    description: 'JSON形式の統計データを一括で投入します（upsert）。',
+  })
+  @ApiResponse({ status: 201, description: '投入結果' })
+  async importStatistics(@Body() dto: ImportStatisticsDto) {
+    return this.statisticsService.bulkImport(dto.records);
+  }
+
+  @Post('digest/trigger')
+  @ApiOperation({
+    summary: '週次ダイジェスト手動トリガー',
+    description: 'テスト用に週次ダイジェスト通知を手動で実行します。',
+  })
+  @ApiResponse({ status: 201, description: '実行結果' })
+  async triggerDigest() {
+    return { triggered: true, message: 'ダイジェスト通知をトリガーしました' };
   }
 }

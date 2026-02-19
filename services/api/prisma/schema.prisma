@@ -31,6 +31,7 @@ model User {
   sosSettings       SosSetting[]    @relation("ElderlySosSettings")
   sosSettingUpdates SosSetting[]    @relation("SosSettingUpdater")
   refreshTokens     RefreshToken[]
+  darkJobChecks     DarkJobCheck[]  @relation("UserDarkJobChecks")
 
   @@map("users")
 }
@@ -230,6 +231,23 @@ model ScamStatistic {
   @@index([prefecture])
   @@index([yearMonth])
   @@map("scam_statistics")
+}
+
+// ─── 闇バイトチェック履歴 ───
+model DarkJobCheck {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  inputText String   @map("input_text")
+  inputType String   @default("text") @map("input_type") // text or image
+  riskLevel String   @map("risk_level")
+  riskScore Int      @map("risk_score")
+  result    Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation("UserDarkJobChecks", fields: [userId], references: [id])
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("dark_job_checks")
 }
 
 // ─── リフレッシュトークン ───

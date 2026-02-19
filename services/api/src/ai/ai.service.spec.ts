@@ -125,6 +125,117 @@ describe('AiService', () => {
     });
   });
 
+  describe('saveDarkJobCheck', () => {
+    it('should save check result to database', async () => {
+      prisma.darkJobCheck.create.mockResolvedValue({ id: 'djc-1' });
+
+      await service.saveDarkJobCheck('user-1', 'テストテキスト', 'text', {
+        riskLevel: 'high',
+        riskScore: 80,
+      });
+
+      expect(prisma.darkJobCheck.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          userId: 'user-1',
+          inputText: 'テストテキスト',
+          inputType: 'text',
+          riskLevel: 'high',
+          riskScore: 80,
+        }),
+      });
+    });
+
+    it('should truncate long inputText to 2000 chars', async () => {
+      prisma.darkJobCheck.create.mockResolvedValue({ id: 'djc-1' });
+      const longText = 'あ'.repeat(3000);
+
+      await service.saveDarkJobCheck('user-1', longText, 'text', {
+        riskLevel: 'low',
+        riskScore: 0,
+      });
+
+      const callArg = prisma.darkJobCheck.create.mock.calls[0][0];
+      expect(callArg.data.inputText.length).toBe(2000);
+    });
+
+    it('should not throw on database error', async () => {
+      prisma.darkJobCheck.create.mockRejectedValue(new Error('DB error'));
+
+      await expect(
+        service.saveDarkJobCheck('user-1', 'text', 'text', {}),
+      ).resolves.toBeUndefined();
+    });
+  });
+
+  describe('getDarkJobHistory', () => {
+    it('should return check history for a user', async () => {
+      const mockRecords = [
+        {
+          id: 'djc-1',
+          inputText: 'テスト',
+          inputType: 'text',
+          riskLevel: 'high',
+          riskScore: 80,
+          result: {},
+          createdAt: new Date(),
+        },
+      ];
+      prisma.darkJobCheck.findMany.mockResolvedValue(mockRecords);
+
+      const result = await service.getDarkJobHistory('user-1', 5);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('djc-1');
+      expect(prisma.darkJobCheck.findMany).toHaveBeenCalledWith({
+        where: { userId: 'user-1' },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+      });
+    });
+
+    it('should use default limit of 20', async () => {
+      prisma.darkJobCheck.findMany.mockResolvedValue([]);
+
+      await service.getDarkJobHistory('user-1');
+
+      expect(prisma.darkJobCheck.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ take: 20 }),
+      );
+    });
+  });
+
+  describe('checkDarkJobImage', () => {
+    it('should return image analysis result on success', async () => {
+      httpService.post.mockReturnValue(
+        of({
+          data: {
+            is_dark_job: false,
+            risk_level: 'low',
+            risk_score: 0,
+            keywords_found: [],
+            explanation: 'テキストなし',
+            model_version: 'v1',
+            extracted_text: '',
+          },
+        }),
+      );
+
+      const result = await service.checkDarkJobImage('base64data', 'gallery');
+
+      expect(result.isDarkJob).toBe(false);
+      expect(result.extractedText).toBe('');
+    });
+
+    it('should return fallback on error', async () => {
+      httpService.post.mockReturnValue(throwError(() => new Error('fail')));
+
+      const result = await service.checkDarkJobImage('base64data');
+
+      expect(result.isDarkJob).toBe(false);
+      expect(result.modelVersion).toBe('error');
+    });
+  });
+
   describe('analyzeConversation', () => {
     it('should save AI analysis to database', async () => {
       httpService.post.mockReturnValue(

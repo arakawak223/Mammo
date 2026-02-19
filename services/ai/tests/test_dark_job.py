@@ -25,7 +25,7 @@ class TestDarkJobCheck:
         assert data["risk_level"] in ("high", "medium")
         assert data["risk_score"] >= 35
         assert len(data["keywords_found"]) >= 1
-        assert data["model_version"] == "darkjob-rule-v0.1.0"
+        assert data["model_version"] == "darkjob-hybrid-v2.0.0"
 
     def test_detects_high_pay_lure(self):
         res = client.post(

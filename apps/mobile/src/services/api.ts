@@ -199,6 +199,27 @@ export const api = {
       }),
     }),
 
+  // Statistics Trend (F7)
+  getStatisticsTrend: (params?: { prefecture?: string; months?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.prefecture) qs.set('prefecture', params.prefecture);
+    if (params?.months) qs.set('months', String(params.months));
+    return request(`/statistics/trend?${qs.toString()}`);
+  },
+
+  getRegionalAdvice: (prefecture: string) =>
+    request(`/statistics/advice?prefecture=${encodeURIComponent(prefecture)}`),
+
+  // Dark Job Image Check (F8)
+  checkDarkJobImage: (imageBase64: string, source?: string) =>
+    request('/ai/dark-job-check-image', {
+      method: 'POST',
+      body: JSON.stringify({ imageBase64, source }),
+    }),
+
+  getDarkJobHistory: (limit = 5) =>
+    request(`/ai/dark-job-history?limit=${limit}`),
+
   // Voice Analyze (F3)
   voiceAnalyze: (transcript: string) =>
     request('/ai/voice-analyze', {

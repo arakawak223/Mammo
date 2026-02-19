@@ -175,6 +175,8 @@ export function ElderlyHomeScreen({ navigation }: any) {
           disabled={isSending || showCountdown}
           accessibilityLabel="これ詐欺ボタン。長押しで家族に連絡します"
           accessibilityRole="button"
+          accessibilityState={{ disabled: isSending || showCountdown }}
+          accessibilityHint="0.5秒長押しで発動します"
         >
           <Text style={styles.scamButtonText}>
             {isSending ? '送信中...' : 'これ 詐欺？'}

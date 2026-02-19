@@ -4,6 +4,7 @@ const config: ExpoConfig = {
   name: 'まもりトーク',
   slug: 'mamori-talk',
   version: '0.1.0',
+  scheme: 'mamoritalk',
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'light',
@@ -15,6 +16,7 @@ const config: ExpoConfig = {
   ios: {
     supportsTablet: false,
     bundleIdentifier: 'com.mamoritalk.app',
+    associatedDomains: ['applinks:mamoritalk.jp'],
     infoPlist: {
       NSLocationWhenInUseUsageDescription: '緊急時に家族に現在地を知らせるために使用します',
       NSLocationAlwaysAndWhenInUseUsageDescription: '緊急SOS時に位置情報を家族に送信するために使用します',
@@ -27,6 +29,14 @@ const config: ExpoConfig = {
       backgroundColor: '#1565C0',
     },
     package: 'com.mamoritalk.app',
+    intentFilters: [
+      {
+        action: 'VIEW',
+        autoVerify: true,
+        data: [{ scheme: 'https', host: 'mamoritalk.jp', pathPrefix: '/' }],
+        category: ['BROWSABLE', 'DEFAULT'],
+      },
+    ],
     permissions: [
       'ACCESS_FINE_LOCATION',
       'ACCESS_BACKGROUND_LOCATION',

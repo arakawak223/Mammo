@@ -31,6 +31,10 @@ export class EnvironmentVariables {
   FIREBASE_SERVICE_ACCOUNT?: string;
 
   @IsOptional()
+  @IsString()
+  SENTRY_DSN?: string;
+
+  @IsOptional()
   @IsNumber()
   @Min(1)
   PORT?: number;

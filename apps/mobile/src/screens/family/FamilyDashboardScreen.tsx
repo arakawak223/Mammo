@@ -120,6 +120,12 @@ export function FamilyDashboardScreen({ navigation }: any) {
             styles.statusCard,
             pendingCount > 0 ? styles.statusDanger : styles.statusSafe,
           ]}
+          accessibilityRole="summary"
+          accessibilityLabel={
+            pendingCount > 0
+              ? `${elderlyName}さんに${pendingCount}件の未対応アラート`
+              : `${elderlyName}さんは安心です`
+          }
         >
           <Text style={styles.statusEmoji}>{pendingCount > 0 ? '!' : ''}</Text>
           <Text style={styles.statusText}>
@@ -173,6 +179,8 @@ export function FamilyDashboardScreen({ navigation }: any) {
             <Pressable
               style={styles.viewAllButton}
               onPress={() => (navigation as any).navigate('Alerts')}
+              accessibilityRole="button"
+              accessibilityLabel={`すべてのアラートを見る。${pendingCount}件未対応`}
             >
               <Text style={styles.viewAllText}>すべてのアラートを見る</Text>
             </Pressable>

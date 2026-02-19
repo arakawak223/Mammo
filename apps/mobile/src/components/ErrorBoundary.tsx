@@ -25,6 +25,13 @@ export class ErrorBoundary extends Component<Props, State> {
     if (__DEV__) {
       console.error('[ErrorBoundary]', error, errorInfo);
     }
+    // Report to Sentry in production
+    try {
+      const { captureError } = require('../services/sentry');
+      captureError(error, { componentStack: errorInfo.componentStack });
+    } catch {
+      // Sentry not initialized
+    }
   }
 
   handleRetry = () => {

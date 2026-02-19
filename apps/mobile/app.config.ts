@@ -8,6 +8,8 @@ const config: ExpoConfig = {
   icon: './assets/icon.png',
   userInterfaceStyle: 'light',
   splash: {
+    image: './assets/splash.png',
+    resizeMode: 'contain',
     backgroundColor: '#1565C0',
   },
   ios: {
@@ -21,6 +23,7 @@ const config: ExpoConfig = {
   },
   android: {
     adaptiveIcon: {
+      foregroundImage: './assets/adaptive-icon.png',
       backgroundColor: '#1565C0',
     },
     package: 'com.mamoritalk.app',

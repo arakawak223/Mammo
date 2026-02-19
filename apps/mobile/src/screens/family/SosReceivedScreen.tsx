@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable, Linking, Alert, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import MapView, { Marker, Polyline } from 'react-native-maps';
 import { api } from '../../services/api';
 import { getSosSocket } from '../../services/socket';
 import { COLORS } from '../../utils/theme';
@@ -145,35 +146,70 @@ export function SosReceivedScreen({ route, navigation }: any) {
           </View>
         </View>
 
-        {/* Map area - shows location data */}
+        {/* Map area */}
         <View style={styles.mapContainer}>
           {latestLocation ? (
-            <View style={styles.mapContent}>
-              <Text style={styles.mapLabel}>最新の位置</Text>
-              <Text style={styles.mapCoords}>
-                {latestLocation.lat.toFixed(6)}, {latestLocation.lng.toFixed(6)}
-              </Text>
-              {latestLocation.accuracy && (
-                <Text style={styles.mapAccuracy}>
-                  精度: {latestLocation.accuracy.toFixed(0)}m
-                </Text>
+            <MapView
+              style={styles.map}
+              region={{
+                latitude: latestLocation.lat,
+                longitude: latestLocation.lng,
+                latitudeDelta: 0.005,
+                longitudeDelta: 0.005,
+              }}
+              showsUserLocation={false}
+              showsCompass
+              showsScale
+            >
+              {/* Current position marker */}
+              <Marker
+                coordinate={{
+                  latitude: latestLocation.lat,
+                  longitude: latestLocation.lng,
+                }}
+                title="現在地"
+                description={`${new Date(latestLocation.ts).toLocaleTimeString('ja-JP')}${
+                  latestLocation.accuracy ? ` (精度: ${latestLocation.accuracy.toFixed(0)}m)` : ''
+                }`}
+                pinColor="red"
+              />
+
+              {/* Movement trail */}
+              {locations.length > 1 && (
+                <Polyline
+                  coordinates={locations.map((loc) => ({
+                    latitude: loc.lat,
+                    longitude: loc.lng,
+                  }))}
+                  strokeColor="rgba(255,255,255,0.8)"
+                  strokeWidth={3}
+                />
               )}
-              {latestLocation.battery !== undefined && (
-                <Text style={styles.mapBattery}>
-                  バッテリー: {latestLocation.battery}%
-                </Text>
-              )}
-              <Text style={styles.mapCount}>
-                位置履歴: {locations.length}件
-              </Text>
-              <Text style={styles.mapHint}>
-                (react-native-maps で地図表示 - 実機でテスト)
-              </Text>
-            </View>
+            </MapView>
           ) : (
-            <Text style={styles.mapPlaceholderText}>位置情報を受信中...</Text>
+            <View style={styles.mapPlaceholder}>
+              <Text style={styles.mapPlaceholderText}>位置情報を受信中...</Text>
+            </View>
           )}
         </View>
+
+        {/* Location info overlay */}
+        {latestLocation && (
+          <View style={styles.locationInfo}>
+            <Text style={styles.locationInfoText}>
+              {latestLocation.lat.toFixed(6)}, {latestLocation.lng.toFixed(6)}
+              {latestLocation.accuracy ? `  精度: ${latestLocation.accuracy.toFixed(0)}m` : ''}
+            </Text>
+            {latestLocation.battery !== undefined && (
+              <Text style={styles.locationInfoText}>
+                バッテリー: {latestLocation.battery}%
+              </Text>
+            )}
+            <Text style={styles.locationInfoText}>
+              位置履歴: {locations.length}件
+            </Text>
+          </View>
+        )}
 
         {/* Location history */}
         {locations.length > 1 && (
@@ -233,21 +269,28 @@ const styles = StyleSheet.create({
   modeBtnActive: { backgroundColor: 'rgba(255,255,255,0.5)' },
   modeBtnText: { fontSize: 14, fontWeight: '600', color: '#FFF' },
   mapContainer: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
     borderRadius: 12,
-    padding: 20,
-    marginBottom: 16,
-    minHeight: 200,
-    justifyContent: 'center',
+    overflow: 'hidden',
+    marginBottom: 12,
+    height: 250,
   },
-  mapContent: { alignItems: 'center' },
-  mapLabel: { fontSize: 14, color: '#FFF', opacity: 0.8, marginBottom: 4 },
-  mapCoords: { fontSize: 20, fontWeight: 'bold', color: '#FFF', marginBottom: 8 },
-  mapAccuracy: { fontSize: 14, color: '#FFF', opacity: 0.8 },
-  mapBattery: { fontSize: 14, color: '#FFF', opacity: 0.8 },
-  mapCount: { fontSize: 14, color: '#FFF', opacity: 0.8, marginTop: 8 },
-  mapHint: { fontSize: 12, color: '#FFF', opacity: 0.5, marginTop: 12, fontStyle: 'italic' },
+  map: {
+    flex: 1,
+  },
+  mapPlaceholder: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   mapPlaceholderText: { fontSize: 18, color: '#FFF', textAlign: 'center' },
+  locationInfo: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 12,
+  },
+  locationInfoText: { fontSize: 13, color: '#FFF', opacity: 0.9, marginBottom: 2 },
   historyContainer: {
     backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 8,

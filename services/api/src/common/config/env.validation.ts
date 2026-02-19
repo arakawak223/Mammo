@@ -27,6 +27,10 @@ export class EnvironmentVariables {
   FIREBASE_PROJECT_ID?: string;
 
   @IsOptional()
+  @IsString()
+  FIREBASE_SERVICE_ACCOUNT?: string;
+
+  @IsOptional()
   @IsNumber()
   @Min(1)
   PORT?: number;

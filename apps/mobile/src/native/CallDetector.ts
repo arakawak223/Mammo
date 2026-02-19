@@ -1,11 +1,11 @@
 /**
- * Call Detector native module interface.
- * On Android: Uses PhoneStateListener / TelecomManager
- * On iOS: Uses CallKit CXCallObserver
+ * Call Detector native module.
+ * On Android: Uses PhoneStateListener / TelecomManager via NativeModules
+ * On iOS: Uses CallKit CXCallObserver via NativeModules
  *
- * This is a TypeScript interface only - native implementation
- * requires actual platform-specific code (Java/Kotlin, Swift/ObjC).
+ * Falls back to stub on platforms without native implementation.
  */
+import { NativeModules, NativeEventEmitter, Platform } from 'react-native';
 
 export interface IncomingCall {
   phoneNumber: string;
@@ -16,48 +16,73 @@ export interface IncomingCall {
 }
 
 export interface CallDetectorInterface {
-  /** Start listening for incoming calls */
   startListening: () => Promise<void>;
-
-  /** Stop listening */
   stopListening: () => Promise<void>;
-
-  /** Check if permissions are granted */
   hasPermission: () => Promise<boolean>;
-
-  /** Request phone state permission (Android) / CallKit access (iOS) */
   requestPermission: () => Promise<boolean>;
-
-  /** Register callback for incoming calls */
   onIncomingCall: (callback: (call: IncomingCall) => void) => () => void;
 }
 
-/**
- * Stub implementation for development/Codespaces.
- * Replace with actual NativeModules bridge on real device builds.
- */
-export const CallDetector: CallDetectorInterface = {
-  startListening: async () => {
-    console.log('[CallDetector] Start listening (stub)');
-  },
+// ─── Native bridge implementation ───
 
+function createNativeCallDetector(): CallDetectorInterface | null {
+  const nativeModule = NativeModules.MamoriCallDetector;
+  if (!nativeModule) return null;
+
+  const eventEmitter = new NativeEventEmitter(nativeModule);
+
+  return {
+    startListening: async () => {
+      await nativeModule.startListening();
+    },
+    stopListening: async () => {
+      await nativeModule.stopListening();
+    },
+    hasPermission: async () => {
+      return nativeModule.hasPermission();
+    },
+    requestPermission: async () => {
+      return nativeModule.requestPermission();
+    },
+    onIncomingCall: (callback: (call: IncomingCall) => void) => {
+      const subscription = eventEmitter.addListener('onIncomingCall', (event: any) => {
+        callback({
+          phoneNumber: event.phoneNumber || '',
+          timestamp: event.timestamp || new Date().toISOString(),
+          isInternational: event.isInternational || false,
+          isInContacts: event.isInContacts || false,
+          callerName: event.callerName,
+        });
+      });
+      return () => subscription.remove();
+    },
+  };
+}
+
+// ─── Stub for development ───
+
+const stubCallDetector: CallDetectorInterface = {
+  startListening: async () => {
+    console.log('[CallDetector] Start listening (stub — native module not available)');
+  },
   stopListening: async () => {
     console.log('[CallDetector] Stop listening (stub)');
   },
-
   hasPermission: async () => {
-    console.log('[CallDetector] Check permission (stub)');
     return false;
   },
-
   requestPermission: async () => {
-    console.log('[CallDetector] Request permission (stub)');
+    console.log('[CallDetector] Request permission (stub — use EAS build for native)');
     return false;
   },
-
-  onIncomingCall: (callback) => {
-    console.log('[CallDetector] Registered callback (stub)');
-    // Return unsubscribe function
+  onIncomingCall: (_callback) => {
     return () => {};
   },
 };
+
+// ─── Export: native on device, stub otherwise ───
+
+export const CallDetector: CallDetectorInterface =
+  (Platform.OS === 'android' || Platform.OS === 'ios')
+    ? createNativeCallDetector() || stubCallDetector
+    : stubCallDetector;

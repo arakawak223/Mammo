@@ -1,11 +1,11 @@
 /**
- * SMS Detector native module interface.
- * On Android: Uses BroadcastReceiver for SMS_RECEIVED
+ * SMS Detector native module.
+ * On Android: Uses BroadcastReceiver for SMS_RECEIVED via NativeModules
  * On iOS: Not available (iOS doesn't allow SMS interception)
  *
- * This is a TypeScript interface only - native implementation
- * requires actual platform-specific code (Java/Kotlin).
+ * Falls back to stub on platforms without native implementation.
  */
+import { NativeModules, NativeEventEmitter, Platform } from 'react-native';
 
 export interface IncomingSms {
   sender: string;
@@ -15,47 +15,80 @@ export interface IncomingSms {
 }
 
 export interface SmsDetectorInterface {
-  /** Start listening for incoming SMS (Android only) */
   startListening: () => Promise<void>;
-
-  /** Stop listening */
   stopListening: () => Promise<void>;
-
-  /** Check if SMS permission is granted */
   hasPermission: () => Promise<boolean>;
-
-  /** Request RECEIVE_SMS permission */
   requestPermission: () => Promise<boolean>;
-
-  /** Register callback for incoming SMS */
   onIncomingSms: (callback: (sms: IncomingSms) => void) => () => void;
 }
 
-/**
- * Stub implementation for development/Codespaces.
- * Replace with actual NativeModules bridge on real device builds.
- */
-export const SmsDetector: SmsDetectorInterface = {
-  startListening: async () => {
-    console.log('[SmsDetector] Start listening (stub)');
-  },
+// ─── Native bridge implementation (Android only) ───
 
+function createNativeSmsDetector(): SmsDetectorInterface | null {
+  if (Platform.OS !== 'android') return null;
+
+  const nativeModule = NativeModules.MamoriSmsDetector;
+  if (!nativeModule) return null;
+
+  const eventEmitter = new NativeEventEmitter(nativeModule);
+
+  return {
+    startListening: async () => {
+      await nativeModule.startListening();
+    },
+    stopListening: async () => {
+      await nativeModule.stopListening();
+    },
+    hasPermission: async () => {
+      return nativeModule.hasPermission();
+    },
+    requestPermission: async () => {
+      return nativeModule.requestPermission();
+    },
+    onIncomingSms: (callback: (sms: IncomingSms) => void) => {
+      const subscription = eventEmitter.addListener('onIncomingSms', (event: any) => {
+        callback({
+          sender: event.sender || '',
+          body: event.body || '',
+          timestamp: event.timestamp || new Date().toISOString(),
+          isInternational: event.isInternational || false,
+        });
+      });
+      return () => subscription.remove();
+    },
+  };
+}
+
+// ─── Stub for development / iOS ───
+
+const stubSmsDetector: SmsDetectorInterface = {
+  startListening: async () => {
+    if (Platform.OS === 'ios') {
+      console.log('[SmsDetector] SMS interception not available on iOS');
+    } else {
+      console.log('[SmsDetector] Start listening (stub — native module not available)');
+    }
+  },
   stopListening: async () => {
     console.log('[SmsDetector] Stop listening (stub)');
   },
-
   hasPermission: async () => {
-    console.log('[SmsDetector] Check permission (stub)');
     return false;
   },
-
   requestPermission: async () => {
-    console.log('[SmsDetector] Request permission (stub)');
+    if (Platform.OS === 'ios') {
+      console.log('[SmsDetector] SMS permission not available on iOS');
+    } else {
+      console.log('[SmsDetector] Request permission (stub — use EAS build for native)');
+    }
     return false;
   },
-
-  onIncomingSms: (callback) => {
-    console.log('[SmsDetector] Registered callback (stub)');
+  onIncomingSms: (_callback) => {
     return () => {};
   },
 };
+
+// ─── Export: native on Android device, stub otherwise ───
+
+export const SmsDetector: SmsDetectorInterface =
+  createNativeSmsDetector() || stubSmsDetector;

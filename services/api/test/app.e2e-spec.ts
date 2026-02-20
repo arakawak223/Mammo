@@ -481,10 +481,19 @@ describe('MamoriTalk API (e2e)', () => {
   // Input Validation
   // ==========================================
   describe('Validation', () => {
+    let validToken: string;
+
+    beforeAll(async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/auth/login')
+        .send({ phone: elderlyPhone, password: 'Test1234' });
+      validToken = res.body.accessToken;
+    });
+
     it('should reject event with invalid type', async () => {
       await request(app.getHttpServer())
         .post('/api/v1/events')
-        .set('Authorization', `Bearer ${elderlyToken}`)
+        .set('Authorization', `Bearer ${validToken}`)
         .send({
           type: 'invalid_type',
           severity: 'high',
@@ -495,7 +504,7 @@ describe('MamoriTalk API (e2e)', () => {
     it('should reject event with invalid severity', async () => {
       await request(app.getHttpServer())
         .post('/api/v1/events')
-        .set('Authorization', `Bearer ${elderlyToken}`)
+        .set('Authorization', `Bearer ${validToken}`)
         .send({
           type: 'scam_button',
           severity: 'extreme',

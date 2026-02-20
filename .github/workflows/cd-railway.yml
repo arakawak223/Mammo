@@ -1,0 +1,95 @@
+name: CD (Railway)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'services/**'
+      - 'packages/**'
+      - '.github/workflows/cd-railway.yml'
+
+env:
+  RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+permissions:
+  contents: read
+
+jobs:
+  # ─── テスト（CD前の最終確認）───
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: mamori
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: mamori_talk_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: services/ai/requirements.txt
+
+      - name: 依存関係インストール
+        run: npm ci
+
+      - name: API テスト
+        working-directory: services/api
+        env:
+          DATABASE_URL: postgresql://mamori:test_password@localhost:5432/mamori_talk_test
+        run: |
+          npx prisma generate
+          npm test
+
+      - name: AI テスト
+        working-directory: services/ai
+        run: |
+          pip install -r requirements.txt
+          pip install pytest httpx
+          python -m pytest tests/ -v
+
+  # ─── Railway デプロイ ───
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Railway CLI インストール
+        run: npm install -g @railway/cli
+
+      - name: AI サービスデプロイ
+        run: railway up --service ai --detach
+        working-directory: services/ai
+
+      - name: API サービスデプロイ
+        run: railway up --service api --detach
+        working-directory: services/api

@@ -2,13 +2,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { ConflictException, UnauthorizedException } from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisCacheService } from '../common/cache/redis-cache.service';
 import { createMockPrisma } from '../test/prisma-mock.helper';
 
-jest.mock('bcrypt');
+jest.mock('bcryptjs');
 jest.mock('nanoid', () => ({ nanoid: () => 'mock-refresh-token-64chars' }));
 
 describe('AuthService', () => {

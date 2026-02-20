@@ -19,7 +19,7 @@ export function SosReceivedScreen({ route, navigation }: any) {
   const [currentMode, setCurrentMode] = useState<'silent' | 'alarm'>('silent');
   const [locations, setLocations] = useState<LocationPoint[]>([]);
   const [resolved, setResolved] = useState(false);
-  const [sessionData, setSessionData] = useState<any>(null);
+  const [, setSessionData] = useState<any>(null);
 
   // Fetch initial session data
   useEffect(() => {

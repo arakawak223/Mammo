@@ -33,6 +33,7 @@ export const alarmPlayer: AlarmPlayer = {
       // Try to play alarm audio file if available
       try {
         const { sound } = await Audio.Sound.createAsync(
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
           require('../../assets/alarm.mp3'),
           { isLooping: true, volume: 1.0 },
         );

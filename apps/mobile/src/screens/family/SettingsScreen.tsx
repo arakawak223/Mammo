@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Alert, FlatList } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
 import { api } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
 import { COLORS } from '../../utils/theme';

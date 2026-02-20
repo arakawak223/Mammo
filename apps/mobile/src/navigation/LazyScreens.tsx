@@ -23,13 +23,13 @@ const styles = StyleSheet.create({
   },
 });
 
-export function withSuspense<P extends object>(
+export function withSuspense<P extends Record<string, unknown>>(
   LazyComponent: React.LazyExoticComponent<ComponentType<P>>,
 ): React.FC<P> {
   return function SuspenseWrapper(props: P) {
     return (
       <Suspense fallback={<LoadingFallback />}>
-        <LazyComponent {...props} />
+        <LazyComponent {...(props as any)} />
       </Suspense>
     );
   };

@@ -60,7 +60,7 @@ interface AdviceData {
   generatedAt: string;
 }
 
-export function StatisticsScreen({ navigation }: any) {
+export function StatisticsScreen() {
   const [selectedPrefecture, setSelectedPrefecture] = useState('全国');
   const [showPrefPicker, setShowPrefPicker] = useState(false);
   const [data, setData] = useState<StatEntry[]>([]);

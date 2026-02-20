@@ -83,6 +83,7 @@ export function DarkJobCheckerScreen() {
     try {
       let ImagePicker: any;
       try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
         ImagePicker = require('expo-image-picker');
       } catch {
         Alert.alert('画像選択', 'この環境では画像選択がサポートされていません。テキスト入力をお試しください。');

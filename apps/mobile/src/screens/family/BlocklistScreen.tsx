@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '../../services/api';
-import { useAuthStore } from '../../store/authStore';
 import { COLORS } from '../../utils/theme';
 
 interface BlockedItem {
@@ -28,7 +27,6 @@ export function BlocklistScreen({ navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const user = useAuthStore((s) => s.user);
 
   // For family users, elderlyId comes from pairings; simplified: use first pairing
   const [elderlyId, setElderlyId] = useState<string | null>(null);

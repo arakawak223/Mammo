@@ -26,12 +26,13 @@ export class ErrorBoundary extends Component<Props, State> {
       console.error('[ErrorBoundary]', error, errorInfo);
     }
     // Report to Sentry in production
-    try {
-      const { captureError } = require('../services/sentry');
-      captureError(error, { componentStack: errorInfo.componentStack });
-    } catch {
-      // Sentry not initialized
-    }
+    import('../services/sentry')
+      .then(({ captureError: capture }) =>
+        capture(error, { componentStack: errorInfo.componentStack }),
+      )
+      .catch(() => {
+        // Sentry not initialized
+      });
   }
 
   handleRetry = () => {

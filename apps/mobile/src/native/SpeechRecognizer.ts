@@ -30,6 +30,7 @@ class RealSpeechRecognizer implements SpeechRecognizerInterface {
 
     if (!this._module) {
       // Dynamic import — only loaded on device where the module exists
+      // @ts-expect-error — expo-speech-recognition types unavailable in Codespaces
       this._module = await import('expo-speech-recognition').catch(() => null);
     }
 

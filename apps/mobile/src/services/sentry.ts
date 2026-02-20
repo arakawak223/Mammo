@@ -16,6 +16,7 @@ export function initSentry(): void {
   }
 
   try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     SentryModule = require('@sentry/react-native');
     SentryModule.init({
       dsn: SENTRY_DSN,

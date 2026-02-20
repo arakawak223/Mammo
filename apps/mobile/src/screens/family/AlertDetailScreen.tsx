@@ -66,7 +66,7 @@ function getRecommendedActions(riskScore: number): string[] {
   return ['引き続き注意してください'];
 }
 
-export function AlertDetailScreen({ route, navigation }: any) {
+export function AlertDetailScreen({ route }: any) {
   const { eventId } = route.params;
   const [event, setEvent] = useState<EventDetail | null>(null);
   const [loading, setLoading] = useState(true);

@@ -5,6 +5,9 @@ COPY package*.json ./
 COPY prisma ./prisma/
 RUN npm install --ignore-scripts && npx prisma generate
 COPY . .
+# tsconfig.base.json はmonorepoルートにあるため、Docker内用に生成
+RUN echo '{"compilerOptions":{"target":"ES2022","module":"commonjs","lib":["ES2022"],"strict":true,"esModuleInterop":true,"skipLibCheck":true,"forceConsistentCasingInFileNames":true,"resolveJsonModule":true,"declaration":true,"declarationMap":true,"sourceMap":true}}' > /app/tsconfig.base.json
+RUN sed -i 's|../../tsconfig.base.json|./tsconfig.base.json|' tsconfig.json
 RUN npm run build
 
 FROM node:20-alpine

@@ -110,7 +110,7 @@ describe('MamoriTalk API (e2e)', () => {
     it('POST /auth/login - valid credentials', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/auth/login')
-        .send({ phone: elderlyPhone, password: 'test1234' })
+        .send({ phone: elderlyPhone, password: 'Test1234' })
         .expect(201);
 
       expect(res.body.accessToken).toBeDefined();
@@ -396,7 +396,7 @@ describe('MamoriTalk API (e2e)', () => {
     it('POST /auth/login - get refresh token', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/auth/login')
-        .send({ phone: elderlyPhone, password: 'test1234' })
+        .send({ phone: elderlyPhone, password: 'Test1234' })
         .expect(201);
 
       expect(res.body.refreshToken).toBeDefined();
@@ -442,7 +442,7 @@ describe('MamoriTalk API (e2e)', () => {
     it('POST /auth/login - re-login after logout', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/auth/login')
-        .send({ phone: elderlyPhone, password: 'test1234' })
+        .send({ phone: elderlyPhone, password: 'Test1234' })
         .expect(201);
 
       elderlyToken = res.body.accessToken;

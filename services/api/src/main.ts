@@ -9,8 +9,12 @@ import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { AuditLogInterceptor } from './common/interceptors/audit-log.interceptor';
 import { SanitizePipe } from './common/pipes/sanitize.pipe';
+import { initSentry } from './common/sentry';
 
 async function bootstrap() {
+  // Sentry初期化（アプリ起動前に実行）
+  initSentry();
+
   const isProduction = process.env.NODE_ENV === 'production';
 
   // WP-5: 本番環境でのJWT_SECRET検証

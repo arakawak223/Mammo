@@ -5,15 +5,23 @@ import Redis from 'ioredis';
 @Injectable()
 export class RedisCacheService implements OnModuleDestroy {
   private readonly logger = new Logger(RedisCacheService.name);
-  private readonly client: Redis;
+  private readonly client: Redis | null = null;
 
   constructor(private config: ConfigService) {
-    const redisUrl =
-      this.config.get<string>('REDIS_URL') || 'redis://localhost:6379';
+    const redisUrl = this.config.get<string>('REDIS_URL');
+    if (!redisUrl) {
+      this.logger.warn('REDIS_URL not set — cache disabled (in-memory fallback)');
+      return;
+    }
     this.client = new Redis(redisUrl, {
       connectTimeout: 3000,
       maxRetriesPerRequest: 1,
+      retryStrategy: (times) => (times > 3 ? null : Math.min(times * 200, 2000)),
       lazyConnect: true,
+    });
+
+    this.client.on('error', (err) => {
+      this.logger.warn(`Redis error: ${err.message}`);
     });
 
     this.client.connect().catch((err) => {
@@ -22,6 +30,7 @@ export class RedisCacheService implements OnModuleDestroy {
   }
 
   async get<T>(key: string): Promise<T | null> {
+    if (!this.client) return null;
     try {
       const value = await this.client.get(key);
       return value ? JSON.parse(value) : null;
@@ -31,6 +40,7 @@ export class RedisCacheService implements OnModuleDestroy {
   }
 
   async set(key: string, value: any, ttlSeconds: number): Promise<void> {
+    if (!this.client) return;
     try {
       await this.client.set(key, JSON.stringify(value), 'EX', ttlSeconds);
     } catch {
@@ -39,6 +49,7 @@ export class RedisCacheService implements OnModuleDestroy {
   }
 
   async del(key: string): Promise<void> {
+    if (!this.client) return;
     try {
       await this.client.del(key);
     } catch {
@@ -47,6 +58,7 @@ export class RedisCacheService implements OnModuleDestroy {
   }
 
   async delByPattern(pattern: string): Promise<void> {
+    if (!this.client) return;
     try {
       const keys = await this.client.keys(pattern);
       if (keys.length > 0) {
@@ -58,6 +70,8 @@ export class RedisCacheService implements OnModuleDestroy {
   }
 
   async onModuleDestroy() {
-    await this.client.quit();
+    if (this.client) {
+      await this.client.quit();
+    }
   }
 }

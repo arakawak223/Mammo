@@ -67,8 +67,8 @@ const isProduction = process.env.NODE_ENV === 'production';
       provide: APP_GUARD,
       useClass: ThrottlerBehindProxyGuard,
     },
-    // 本番: Redis分散レート制限、開発/テスト: インメモリ
-    ...(isProduction
+    // 本番+Redis有効時: Redis分散レート制限、それ以外: インメモリ
+    ...(isProduction && process.env.REDIS_URL
       ? [{ provide: ThrottlerStorage, useClass: RedisThrottlerStorage }]
       : []),
   ],

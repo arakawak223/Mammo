@@ -16,13 +16,20 @@ export class RedisThrottlerStorage implements ThrottlerStorage, OnModuleDestroy 
   private connected = false;
 
   constructor(private config: ConfigService) {
-    const redisUrl =
-      this.config.get<string>('REDIS_URL') || 'redis://localhost:6379';
+    const redisUrl = this.config.get<string>('REDIS_URL');
+    if (!redisUrl) {
+      this.connected = false;
+      return;
+    }
     try {
       this.client = new Redis(redisUrl, {
         connectTimeout: 3000,
         maxRetriesPerRequest: 1,
+        retryStrategy: (times) => (times > 3 ? null : Math.min(times * 200, 2000)),
         lazyConnect: true,
+      });
+      this.client.on('error', () => {
+        this.connected = false;
       });
       this.client
         .connect()

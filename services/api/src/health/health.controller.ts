@@ -38,7 +38,7 @@ export class HealthController {
     dependencies.ai = await this.checkAiService();
 
     const allOk = Object.values(dependencies).every(
-      (d) => d.status === 'ok',
+      (d) => d.status === 'ok' || d.status === 'skipped',
     );
 
     return {
@@ -74,14 +74,18 @@ export class HealthController {
     responseTime?: number;
     error?: string;
   }> {
+    const redisUrl = process.env.REDIS_URL;
+    if (!redisUrl) {
+      return { status: 'skipped', responseTime: 0 };
+    }
     const start = Date.now();
     try {
       const Redis = await import('ioredis');
-      const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
       const redis = new Redis.default(redisUrl, {
         connectTimeout: 3000,
         lazyConnect: true,
       });
+      redis.on('error', () => {}); // prevent unhandled error crash
       await redis.connect();
       await redis.ping();
       await redis.quit();

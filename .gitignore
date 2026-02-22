@@ -50,6 +50,11 @@ apps/mobile/ios/
 *.aab
 *.ipa
 
+# Firebase credentials
+google-services.json
+GoogleService-Info.plist
+*-firebase-adminsdk-*.json
+
 # Logs
 *.log
 npm-debug.log*

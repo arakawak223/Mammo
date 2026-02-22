@@ -24,10 +24,6 @@ export class EnvironmentVariables {
 
   @IsOptional()
   @IsString()
-  FIREBASE_PROJECT_ID?: string;
-
-  @IsOptional()
-  @IsString()
   FIREBASE_SERVICE_ACCOUNT?: string;
 
   @IsOptional()

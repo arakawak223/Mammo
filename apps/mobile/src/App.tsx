@@ -1,13 +1,19 @@
-import React, { useEffect } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import React, { useEffect, useRef } from 'react';
+import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { RootNavigator } from './navigation/RootNavigator';
+import { RootNavigator, RootStackParamList } from './navigation/RootNavigator';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { useAuthStore } from './store/authStore';
 import { connectSosSocket, connectAlertsSocket, disconnectAll } from './services/socket';
 import { flushQueue } from './services/offlineQueue';
 import { startAutoForward, stopAutoForward } from './services/autoForward';
 import { initSentry, setUser, clearUser } from './services/sentry';
+import {
+  registerForPushNotifications,
+  setupNotificationChannels,
+  startNotificationListeners,
+  clearDeviceToken,
+} from './services/notifications';
 
 // Initialize Sentry as early as possible
 initSentry();
@@ -52,6 +58,12 @@ export default function App() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const userRole = useAuthStore((s) => s.user?.role);
   const userId = useAuthStore((s) => s.user?.id);
+  const navigationRef = useRef<NavigationContainerRef<RootStackParamList>>(null);
+
+  // Set up Android notification channels once on mount
+  useEffect(() => {
+    setupNotificationChannels();
+  }, []);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -71,8 +83,36 @@ export default function App() {
           console.warn('[AutoForward] Failed to start:', err),
         );
       }
+
+      // Register for push notifications
+      registerForPushNotifications().catch((err) =>
+        console.warn('[Push] Registration failed:', err),
+      );
+
+      // Start notification listeners with navigation handling
+      const removeListeners = startNotificationListeners((data) => {
+        if (!navigationRef.current) return;
+        const nav = navigationRef.current;
+
+        if (data.type === 'sos' && data.sessionId) {
+          nav.navigate('FamilyMain', {
+            screen: 'SosReceived',
+            params: { sessionId: data.sessionId },
+          } as any);
+        } else if (data.type === 'alert' && data.eventId) {
+          nav.navigate('FamilyMain', {
+            screen: 'Alerts',
+            params: { screen: 'AlertDetail', params: { eventId: data.eventId } },
+          } as any);
+        }
+      });
+
+      return () => {
+        removeListeners();
+      };
     } else {
       clearUser();
+      clearDeviceToken();
       disconnectAll();
       stopAutoForward().catch(() => {});
     }
@@ -86,7 +126,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <SafeAreaProvider>
-        <NavigationContainer linking={linking}>
+        <NavigationContainer ref={navigationRef} linking={linking}>
           <RootNavigator />
         </NavigationContainer>
       </SafeAreaProvider>

@@ -1,4 +1,4 @@
-FROM node:20-alpine AS builder
+FROM node:25-alpine AS builder
 RUN apk add --no-cache openssl
 WORKDIR /app
 COPY package*.json ./
@@ -10,7 +10,7 @@ RUN echo '{"compilerOptions":{"target":"ES2022","module":"commonjs","lib":["ES20
 RUN sed -i 's|../../tsconfig.base.json|./tsconfig.base.json|' tsconfig.json
 RUN npm run build
 
-FROM node:20-alpine
+FROM node:25-alpine
 RUN apk add --no-cache openssl curl
 RUN addgroup -g 1001 -S mamori && adduser -S mamori -u 1001 -G mamori
 WORKDIR /app

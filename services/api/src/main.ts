@@ -122,9 +122,9 @@ async function bootstrap() {
   app.enableShutdownHooks();
 
   const port = process.env.PORT || 3000;
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
 
   const logger = app.get(Logger);
-  logger.log(`MamoriTalk API running on port ${port}`);
+  logger.log(`MamoriTalk API running on 0.0.0.0:${port}`);
 }
 bootstrap();

@@ -18,9 +18,6 @@ COPY --from=builder --chown=mamori:mamori /app/dist ./dist
 COPY --from=builder --chown=mamori:mamori /app/node_modules ./node_modules
 COPY --from=builder --chown=mamori:mamori /app/package*.json ./
 COPY --from=builder --chown=mamori:mamori /app/prisma ./prisma
-ENV PORT=3000
 USER mamori
-EXPOSE ${PORT}
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-  CMD curl -f http://localhost:${PORT}/api/v1/health || exit 1
+EXPOSE 3000
 CMD sh -c "npx prisma migrate deploy && node dist/main"
